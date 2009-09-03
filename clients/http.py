@@ -56,3 +56,22 @@ class APNSSite(server.Site):
         server.Site.__init__(self, self.root_resource)
         daemon.reactor.listenTCP(kwds['port'], self)
 
+
+class Client(object):
+    """
+    A helper class used by applications for sending messages to the
+    apns-daemon via Http protocol.
+    """
+    def __init__(self, host = "localhost", port = 90):
+        print "Creating HTTP Client"
+        self.serverHost = host
+        self.serverPort = port
+
+    def sendMessage(self, app, devtoken, payload):
+        url = "http://%s:%d/%s/%s/" % (self.serverHost, self.serverPort, app, devtoken)
+
+        import urllib, urllib2
+        data = urllib.urlencode(payload)
+        request = urllib2.Request(url, data)
+        response =  urllib2.urlopen(req)
+        return response.read()

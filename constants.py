@@ -20,8 +20,8 @@ MAX_PAYLOAD_LENGTH          = 256
 DEVICE_TOKEN_LENGTH         = 32
 
 DEFAULT_APNS_PROD_HOST      = "gateway.push.apple.com"
-DEFAULT_APNS_DEV_HOST       = "gateway.sandbox.push.apple.com"
 DEFAULT_APNS_PROD_PORT      = 2195
+DEFAULT_APNS_DEV_HOST       = "gateway.sandbox.push.apple.com"
 DEFAULT_APNS_DEV_PORT       = 2195
 
 DEFAULT_FEEDBACK_PROD_HOST  = "feedback.push.apple.com"

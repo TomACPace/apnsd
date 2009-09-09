@@ -117,8 +117,9 @@ class APNSDaemon(threading.Thread):
         if app_name in self.connections:
             raise errors.AppRegistrationError(app_name, "Application already registered")
 
-        print "Registering Application: %s, Bundle ID: %s" % (app_name)
+        print "Registering Application: %s..." % (app_name)
         from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
+        from OpenSSL import SSL
         self.connections[app_name] = {
             'num_connections':          0,
             'apns_host':                apns_host,
@@ -128,7 +129,9 @@ class APNSDaemon(threading.Thread):
             'certificate_file':         certificate_file,
             'privatekey_file':          privatekey_file,
             'client_factory':           APNSFactory(),
-            'client_context_factory':   SSLContextFactory(privatekey_file, certificate_file)
+            'client_context_factory':   SSLContextFactory(privatekey_file,
+                                                          certificate_file,
+                                                          SSL.SSLv3_METHOD)
         }
 
     def sendMessage(self, orig_app, target_device, payload):
@@ -136,7 +139,8 @@ class APNSDaemon(threading.Thread):
         Sends a message/payload from a given app to a target device.
         """
         if orig_app not in self.connections:
-            raise errors.AppRegistrationError(orig_name, "Application not registered")
+            print "Connections: ", self.connections
+            raise errors.AppRegistrationError(orig_app, "Application not registered")
         
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()

@@ -50,6 +50,17 @@ def read_config_file(apns_daemon, config_file):
         client = client_class(apns_daemon, **client_data)
         print "Loading client: ", client
         
+    apps = configs['apps']
+    for app_key in apps:
+        app         = apps[app_key]
+        app_id      = app['app_id']
+        cert_file   = app['certificate_file']
+        pkey_file   = app.get("privatekey_file", None)
+        apns_daemon.registerApp(app_id,
+                                os.path.abspath(cert_file),
+                                os.path.abspath(pkey_file))
+
+
 def parse_options(apns_daemon):
     from optparse import OptionParser
 
@@ -63,13 +74,6 @@ def parse_options(apns_daemon):
         parser.error("Please specify a valid config filename with the -c option")
         
     read_config_file(apns_daemon, options.configfile)
-
-    # register all apps here
-    """
-    apns_daemon.registerApp("metjungle",
-                            os.path.abspath("certs/CertificateFile.pem"),
-                            os.path.abspath("certs/PrivateKeyFile.pem"))
-    """
 
 def main():
     from twisted.internet import reactor

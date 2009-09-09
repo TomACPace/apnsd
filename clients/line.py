@@ -89,5 +89,6 @@ class LineClient(object):
             self.servers[app]['socket'] = newsocket
 
         line = str(app) + "," + devtoken + "," + payload.replace("\n", " ")
-        self.servers[app]['socket'].send(line + "\r\n")
+        result = self.servers[app]['socket'].send(line + "\r\n")
+        print "Result: ", result
         return 0, "Successful"

@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-import threading, Queue, optparse
+import threading, Queue, optparse, os
 from twisted.internet.protocol import ClientFactory, Protocol
 import constants, errors
 
@@ -117,6 +117,12 @@ class APNSDaemon(threading.Thread):
         if app_name in self.connections:
             raise errors.AppRegistrationError(app_name, "Application already registered")
 
+        if certificate_file:
+            certificate_file = os.path.abspath(certificate_file)
+
+        if privatekey_file:
+            privatekey_file = os.path.abspath(privatekey_file)
+
         print "Registering Application: %s..." % (app_name)
         from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
         from OpenSSL import SSL
@@ -130,8 +136,8 @@ class APNSDaemon(threading.Thread):
             'privatekey_file':          privatekey_file,
             'client_factory':           APNSFactory(),
             'client_context_factory':   SSLContextFactory(privatekey_file,
-                                                          certificate_file,
-                                                          SSL.SSLv3_METHOD)
+                                                          certificate_file)
+                                                          # ,SSL.SSLv3_METHOD)
         }
 
     def sendMessage(self, orig_app, target_device, payload):

@@ -56,9 +56,7 @@ def read_config_file(apns_daemon, config_file):
         app_id      = app['app_id']
         cert_file   = app['certificate_file']
         pkey_file   = app.get("privatekey_file", None)
-        apns_daemon.registerApp(app_id,
-                                os.path.abspath(cert_file),
-                                os.path.abspath(pkey_file))
+        apns_daemon.registerApp(app_id, cert_file, pkey_file)
 
 
 def parse_options(apns_daemon):

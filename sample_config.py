@@ -17,13 +17,13 @@
 ###############################################################################
 
 {
-    'clients': {
+    'listeners': {
         'line': {
-            'class': 'clients.line.LineProtocolFactory',
+            'class': 'servers.line.LineProtocolFactory',
             'port': 90
         },
         'http': {
-            'class': 'clients.http.APNSSite',
+            'class': 'servers.http.APNSSite',
             'port': 99
         },
     },

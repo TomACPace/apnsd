@@ -29,15 +29,15 @@ def read_config_file(apns_daemon, config_file):
         raise errors.ConfigFileError(config_file, "File not found")
 
     configs = eval(open(config_file).read())
-    if 'clients' not in configs:
-        raise errors.ConfigFileError(config_file, "'clients' section not found")
+    if 'listeners' not in configs:
+        raise errors.ConfigFileError(config_file, "'listeners' section not found")
 
     if 'apps' not in configs:
         raise errors.ConfigFileError(config_file, "'apps' section not found")
 
-    clients = configs['clients']
-    for client_name in clients:
-        client_data     = clients[client_name]
+    listeners = configs['listeners']
+    for client_name in listeners:
+        client_data     = lisetners[client_name]
         client_class    = client_data['class']
         parts = client_class.split(".")
         if len(parts) > 1:

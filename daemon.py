@@ -34,6 +34,9 @@ class APNSProtocol(Protocol):
             deviceToken, payload = self.messageQueue.get()
             self.sendMessage(deviceToken, payload)
 
+    #
+    # Just print out the data we recieve from the APNS.
+    #
     def dataReceived(self, data):
         print "APNS Data [(%d) bytes] Received: " % len(data), str(data)
 
@@ -101,6 +104,9 @@ class APNSDaemon(threading.Thread):
     """
 
     def __init__(self, reactor):
+        """
+        Initialises the daemon, with its reactor and the connection queue.
+        """
         self.reactor        = reactor
         self.connections    = {}
 
@@ -168,6 +174,6 @@ class APNSDaemon(threading.Thread):
         # note we are not connecting to APN server here.  We will do this
         # the first time a notification needs to be sent.  But instead we
         # listen to connection on the local network as we are the
-        # standalone daemon.  When requests arrive, 
+        # standalone daemon.  
         self.reactor.run()
 

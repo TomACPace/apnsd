@@ -36,19 +36,19 @@ def read_config_file(apns_daemon, config_file):
         raise errors.ConfigFileError(config_file, "'apps' section not found")
 
     listeners = configs['listeners']
-    for client_name in listeners:
-        client_data     = lisetners[client_name]
-        client_class    = client_data['class']
-        parts = client_class.split(".")
+    for listener_name in listeners:
+        listener_data     = listeners[listener_name]
+        listener_class    = listener_data['class']
+        parts = listener_class.split(".")
         if len(parts) > 1:
-            client_pkg      = ".".join(parts[:-1])
-            client_module   = __import__(client_pkg, {}, {}, [''])
-            client_class    = getattr(client_module, parts[-1])
+            listener_pkg      = ".".join(parts[:-1])
+            listener_module   = __import__(listener_pkg, {}, {}, [''])
+            listener_class    = getattr(listener_module, parts[-1])
         else:
-            client_class    = eval(parts[-1])
+            listener_class    = eval(parts[-1])
 
-        client = client_class(apns_daemon, **client_data)
-        print "Loading client: ", client
+        listener = listener_class(apns_daemon, **listener_data)
+        print "Loading listener: ", listener
         
     apps = configs['apps']
     for app_key in apps:

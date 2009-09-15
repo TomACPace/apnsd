@@ -30,14 +30,9 @@
 
     'apps': {
         'app1': {
-            'app_id':           "App1 ID",
-            'certificate_file': "path_to_certificate_file_1.pem",
-            'privatekey_file':  "path_to_privatekey_file_1.pem"
-        },
-        'app2': {
-            'app_id':           "App2 ID",
-            'certificate_file': "path_to_certificate_file_2.pem",
-            'privatekey_file':  "path_to_privatekey_file_2.pem"
+            'app_id':           "apnstest",
+            'certificate_file': "../../../certs/apnstest/Certificates.pem",
+            'privatekey_file':  "../../../certs/apnstest/PrivateKey.unenc.pem",
         },
     }
 }

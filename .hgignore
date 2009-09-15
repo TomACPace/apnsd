@@ -8,3 +8,6 @@ syntax: glob
 *.log
 *.bak
 tags*
+test/iphoneapp/build/*
+test/iphoneapp/Classes/._*.h
+test/iphoneapp/Classes/._*.m

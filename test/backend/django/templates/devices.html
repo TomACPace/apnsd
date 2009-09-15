@@ -1,0 +1,19 @@
+
+<html>
+<head>
+    <title>Registered Devices</title>
+</head>
+<body>
+    <center>
+    {{ value }}
+    {% if registered_devices %}
+        <h2>Registered Devices</h2>
+        {% for device in registered_devices %}
+            <p> <a href="/devices/{{device.id}}/">{{device.device_token}}</a>
+        {% endfor %}
+    {% else %}
+        <h2>No Registered Devices</h2>
+    {% endif %}
+    </center>
+</body>
+</html>

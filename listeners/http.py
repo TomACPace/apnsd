@@ -17,6 +17,27 @@
 ###############################################################################
 
 from twisted.web import server, resource
+from twisted.web import error as twerror
+
+# to do errors do this:
+# page = error.NoResource(message  "Resource %s not found" % request.URLPath())
+# return page.render(request)
+
+def ensure_request_authenticated(auth_function):
+    """
+    A decorator that ensures that the requests handled by render and
+    render_METHOD methods in a resource handler are authenticated.
+    We usually do this to check that all requests have some auth headers
+    set.
+    """
+    def ensure_request_authenticated_decorator(func):
+        def ensure_request_authenticated_method(resource, request):
+            if auth_function and not auth_function(resource, request):
+                return "Not Authenticated Error"
+            else:
+                return func(resource, request)
+        return ensure_request_authenticated_method
+    return ensure_request_authenticated_decorator
 
 class APNSRootResource(resource.Resource):
     """
@@ -25,6 +46,10 @@ class APNSRootResource(resource.Resource):
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
+        self.admin_resource = APNSAdminResource(daemon, **kwds)
+        self.apps_resource  = APNSAppsResource(daemon, **kwds)
+        self.putChild("admin", self.admin_resource)
+        self.putChild("apps", self.apps_resource)
 
 class APNSAdminResource(resource.Resource):
     """
@@ -33,44 +58,66 @@ class APNSAdminResource(resource.Resource):
     acting as the frontend for the admin (eg gae).  The admin does things
     like manage app specific passwords and the app's provisioning
     certificates.
+    Also the admin resource manages users in the system.
+    """
+    def __init__(self, daemon, **kwds):
+        resource.Resource.__init__(self)
+        self.apns_daemon = daemon
+        self.apps_resource = APNSAdminAppsResource(daemon, **kwds)
+        self.users_resource = APNSAdminUsersResource(daemon, **kwds)
+        self.putChild("apps", self.apps_resource)
+        self.putChild("users", self.users_resource)
+
+class APNSAdminUsersResource(resource.Resource):
+    """
+    The users section within in the admin resource.
+    Handles requests to the following /admin/users/ urls:
+        1. /create/?username=<email/username>&passwd=<password>&otherparams
+            Creates a new user with the username and password.  The
+            username can be an email or other wise.
+            Other noteworthy parameters can also be passed here. 
+        2. /delete/?username=<email/username>
+            Deleting an app by the given name.
+        3. /password/
+            Changes the password for a user.  The request MUST contain the
+            old and the new passwords.  Also through out the http
+            connector (and listener) we need uniform password schemes.
     """
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
 
-    def render_GET(self, request):
-        """
-        Handle's GET requests.
-        Only an app's provisioning certificate file names are allowed and
-        nothing else for now.
-        In most cases, the adming front end (not the resource) will be
-        pushed with information we want to be viewed and monitored.  So
-        logs and usage data will be pushed.
-        """
+    def render(self, request):
         parts = request.path.split("/")
-        return "Please use POST requests"
 
-    def render_POST(self, request):
-        """ 
-        Handle's POST requests to the admin interface.
-        POST requests can only be:
-        1. /apps/create/?appname=<appname>&passwd=passwd
-            Creating a new app with the app name and the password of the
-            app as GET parameters.
-        2. /apps/<appname>/delete
-            Deleting an app by the given name.
-        3. /apps/<appname>/certupload/?certtype=<certtype>
+class APNSAdminAppsResource(resource.Resource):
+    """
+    The apps section within in the admin resource.
+    Handles requests to the following /admin/apps/ urls:
+        1. /create/?appname=<appname>&user=<username>&passwd=passwd
+            Creates a new app with the app name.
+            The username (or email) and password are mandatory fields.
+        2. /delete/?appname=<appname>&username=<username>
+            Deleting an app by the given name belonging to a specific user.
+        3.  /certupload/?certtype=<certtype>&username=<username>&appname=<appname>
             Uploads dev/provisioning certificate files for an app.
             The certificate file will be the POST data and the certificate
             type (eg "dev" or "prod") will be specified in the GET
             parameter.
-        4. /apps/<appname>/passwd/
+        4. /passwd/?username=<username>&appname=<appname>
             Change the password.  When doing this both the old AND the new
             passwords must be provided.
-        """
+    """
+    isLeaf = True
+    def __init__(self, daemon, **kwds):
+        resource.Resource.__init__(self)
+        self.apns_daemon = daemon
 
-class APNSAppResource(resource.Resource):
+    def render(self, request):
+        parts = request.path.split("/")
+
+class APNSAppsResource(resource.Resource):
     """
     A resource which handles all calls to /apps/.
     Requests to /apps/.../ are treated as messages to be forwarded to APNS.
@@ -108,10 +155,6 @@ class APNSSite(server.Site):
     def __init__(self, daemon, **kwds):
         self.apns_daemon    = daemon
         self.root_resource  = APNSRootResource(daemon, **kwds)
-        self.admin_resource = APNSAdminResource(daemon, **kwds)
-        self.apps_resource  = APNSAppsResource(daemon, **kwds)
-        self.root_resource.putChild("admin", self.admin_resource)
-        self.root_resource.putChild("apps", self.apps_resource)
 
         server.Site.__init__(self, self.root_resource)
 

@@ -39,6 +39,37 @@ class APNSAdminResource(resource.Resource):
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
 
+    def render_GET(self, request):
+        """
+        Handle's GET requests.
+        Only an app's provisioning certificate file names are allowed and
+        nothing else for now.
+        In most cases, the adming front end (not the resource) will be
+        pushed with information we want to be viewed and monitored.  So
+        logs and usage data will be pushed.
+        """
+        parts = request.path.split("/")
+        return "Please use POST requests"
+
+    def render_POST(self, request):
+        """ 
+        Handle's POST requests to the admin interface.
+        POST requests can only be:
+        1. /apps/create/?appname=<appname>&passwd=passwd
+            Creating a new app with the app name and the password of the
+            app as GET parameters.
+        2. /apps/<appname>/delete
+            Deleting an app by the given name.
+        3. /apps/<appname>/certupload/?certtype=<certtype>
+            Uploads dev/provisioning certificate files for an app.
+            The certificate file will be the POST data and the certificate
+            type (eg "dev" or "prod") will be specified in the GET
+            parameter.
+        4. /apps/<appname>/passwd/
+            Change the password.  When doing this both the old AND the new
+            passwords must be provided.
+        """
+
 class APNSAppResource(resource.Resource):
     """
     A resource which handles all calls to /apps/.

@@ -24,11 +24,11 @@ class APNSRootResource(resource.Resource):
     The root apns resource.
     """
     def __init__(self, daemon, **kwds):
-        import admin
+        import admin, apps
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
         self.admin_resource = admin.APNSAdminResource(daemon, **kwds)
-        self.apps_resource  = admin.APNSAppsResource(daemon, **kwds)
+        self.apps_resource  = apps.APNSAppsResource(daemon, **kwds)
         self.putChild("admin", self.admin_resource)
         self.putChild("apps", self.apps_resource)
 
@@ -39,7 +39,13 @@ class APNSSite(server.Site):
 
         server.Site.__init__(self, self.root_resource)
 
+        # we are changing the default interface from "all" to
+        # localhost for security reasons...  if you really really mean to
+        # make it all hosts then specify as all in the config file
+        interface   = kwds.get("interface", "localhost")
+        backlog     = kwds.get("backlog", 50)
+
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...
-        daemon.reactor.listenTCP(kwds['port'], self)
+        daemon.reactor.listenTCP(kwds['port'], self, backlog = backlog, interface = interface)
 

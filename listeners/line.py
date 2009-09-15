@@ -50,7 +50,12 @@ class LineProtocolFactory(Factory):
     """
     def __init__(self, daemon, **kwds):
         self.apns_daemon = daemon
-        daemon.reactor.listenTCP(kwds['port'], self)
+        # we change the interface from "all" to
+        # localhost for security reasons...  if you really really mean to
+        # make it all hosts then specify as all in the config file
+        interface   = kwds.get("interface", "localhost")
+        backlog     = kwds.get("backlog", 50)
+        daemon.reactor.listenTCP(kwds['port'], self, backlog = backlog, interface = interface)
 
     def startedConnecting(self, connector):
         print "Started LineClient connection..."

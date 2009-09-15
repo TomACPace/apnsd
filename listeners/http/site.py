@@ -44,8 +44,11 @@ class APNSSite(server.Site):
         # make it all hosts then specify as all in the config file
         interface   = kwds.get("interface", "localhost")
         backlog     = kwds.get("backlog", 50)
+        secure      = kwds.get("secure", False)
+        port        = kwds.get("port", 443 if secure else 80)
 
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...
-        daemon.reactor.listenTCP(kwds['port'], self, backlog = backlog, interface = interface)
+        print "Listening on APNSSite on %s:%d" % (interface, port)
+        daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
 

@@ -47,8 +47,10 @@ def read_config_file(apns_daemon, config_file):
         else:
             listener_class    = eval(parts[-1])
 
+        print "Creating listener: ", listener_class
         listener = listener_class(apns_daemon, **listener_data)
-        print "Loading listener: ", listener
+        print "Listener Created: ", listener
+        print "----------------------"
         
     apps = configs['apps']
     for app_key in apps:

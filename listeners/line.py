@@ -55,7 +55,9 @@ class LineProtocolFactory(Factory):
         # make it all hosts then specify as all in the config file
         interface   = kwds.get("interface", "localhost")
         backlog     = kwds.get("backlog", 50)
-        daemon.reactor.listenTCP(kwds['port'], self, backlog = backlog, interface = interface)
+        port        = kwds.get("port")
+        print "Listening on Line Protocol on %s:%d" % (interface, port)
+        daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
 
     def startedConnecting(self, connector):
         print "Started LineClient connection..."

@@ -22,6 +22,13 @@ import decorators as decos
 from json import json_response
 
 
+def is_password_valid(self, password):
+    """
+    tells if a password is valid or not by doing simple checks like
+    checking for length, character types and so on.
+    """
+    return True
+
 class APNSAdminResource(resource.Resource):
     """
     The admin resource handler.
@@ -92,10 +99,6 @@ class APNSAdminUsersResource(resource.Resource):
         username    = utils.get_reqvar(request, "username")
         newpassword = utils.get_reqvar(request, "newpassword")
 
-    def is_password_valid(self, password):
-        # tells if a password is valid or not
-        return True
-
 class APNSAdminAppsResource(resource.Resource):
     """
     The apps section within in the admin resource.
@@ -144,10 +147,8 @@ class APNSAdminAppsResource(resource.Resource):
         Creates a new app.
         """
         username    = utils.get_reqvar(request, "username")
-        appname     = utils.get_reqvar(request, "username")
+        appname     = utils.get_reqvar(request, "appname")
         password    = utils.get_reqvar(request, "password")
-
-        # go for it!!!
 
     @decos.require_parameters("username", "appname")
     def delete_app(self, request):
@@ -155,14 +156,24 @@ class APNSAdminAppsResource(resource.Resource):
         Deletes an app.
         """
         username = utils.get_reqvar(request, "username")
-        appname = utils.get_reqvar(request, "username")
+        appname = utils.get_reqvar(request, "appname")
 
+    @decos.require_parameters("username", "appname", "password")
     def change_app_password(self, request):
         """
         Changes the app password.
         """
+        username    = utils.get_reqvar(request, "username")
+        appname     = utils.get_reqvar(request, "appname")
+        password    = utils.get_reqvar(request, "password")
 
+    @decos.require_parameters("username", "appname", "certfile", "certtype")
     def upload_app_certificate(self, request):
         """
         Uploads a dev or provisioning certificate for an app.
         """
+        username    = utils.get_reqvar(request, "username")
+        appname     = utils.get_reqvar(request, "appname")
+        certfile    = utils.get_reqvar(request, "certfile")
+        certtype    = utils.get_reqvar(request, "certtype")
+

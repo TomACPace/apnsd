@@ -18,6 +18,39 @@
 
 from twisted.web import error as twerror
 import errors
+import simplejson
+
+def api_result(code, value):
+    """
+    Encodes a code and value in json dict.
+    """
+    return {'code': code, 'value': value}
+
+def json_response(request, code, value, status = 200):
+    """
+    Returns an application/json content with the code and value.
+    """
+    result = api_result(code, value)
+    request.setResponseCode(status)
+    request.setHeader("Content-type", "text/html")
+    # request.setHeader("Content-type", "application/json")
+    return json_encode(result)
+
+class OurJsonEncoder(simplejson.JSONEncoder):
+    def default(self, o):
+        if type(o) is datetime.datetime:
+            return str(o)
+        return super(OurJsonEncoder, self).default(o)
+
+def json_encode(data):
+    return OurJsonEncoder().encode(data)
+
+def json_decode(data):
+    if data:
+        from simplejson.decoder import JSONDecoder as jdec
+        return jdec().decode(data)
+    else:
+        return None
 
 def get_reqvar(request, param, defaultval = None):
     """

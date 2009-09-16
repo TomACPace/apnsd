@@ -18,7 +18,8 @@
 
 from twisted.web import server, resource
 import utils, auth, errors
-from utils import json_response, json_error_page
+import decorators as decos
+from json import json_response
 
 
 class APNSAdminResource(resource.Resource):
@@ -58,13 +59,13 @@ class APNSAdminUsersResource(resource.Resource):
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
 
-    @utils.ensure_request_authenticated(auth.basic_auth, prefix="admin")
+    @decos.ensure_request_authenticated(auth.basic_auth, prefix="admin")
     def render(self, request):
         # get the components in the path
         # why 3 onwards? the resource does not split the co
         parts = request.path.split("/")[3:]
         if not parts:
-            return utils.no_resource_error(request)
+            return errors.no_resource_error(request)
             
         command, parts = parts[0], parts[1:]
         if command == 'create':
@@ -74,27 +75,26 @@ class APNSAdminUsersResource(resource.Resource):
         elif command == 'passwd':
             return self.change_user_password(request)
         else:
-            return utils.no_resource_error(request)
+            return errors.no_resource_error(request)
             
+
+    @decos.require_parameters("username", "password")
     def create_new_user(self, request):
         username    = utils.get_reqvar(request, "username")
         password    = utils.get_reqvar(request, "password")
-        if not (username and password):
-            return json_error_page(request, errors.UNAME_PWD_NOT_SPECIFIED)
-            
+
+    @decos.require_parameters("username")
     def delete_user(self, request):
         username    = utils.get_reqvar(request, "username")
-        if not username:
-            return json_error_page(request, errors.UNAME_NOT_SPECIFIED)
             
+    @decos.require_parameters("username", "newpassword")
     def change_user_password(self, request):
         username    = utils.get_reqvar(request, "username")
         newpassword = utils.get_reqvar(request, "newpassword")
-        if not username or newpassword:
-            return json_error_page(request, errors.UNAME_PWD_NOT_SPECIFIED)
 
     def is_password_valid(self, password):
         # tells if a password is valid or not
+        return True
 
 class APNSAdminAppsResource(resource.Resource):
     """
@@ -124,7 +124,7 @@ class APNSAdminAppsResource(resource.Resource):
         # why 3 onwards? the resource does not split the co
         parts = request.path.split("/")[3:]
         if not parts:
-            return utils.no_resource_error(request)
+            return errors.no_resource_error(request)
             
         command, parts = parts[0], parts[1:]
         if command == 'create':
@@ -136,17 +136,26 @@ class APNSAdminAppsResource(resource.Resource):
         elif command == 'certupload':
             return self.upload_app_certificate(request)
         else:
-            return utils.no_resource_error(request)
+            return errors.no_resource_error(request)
     
+    @decos.require_parameters("username", "appname", "password")
     def create_new_app(self, request):
         """
         Creates a new app.
         """
+        username    = utils.get_reqvar(request, "username")
+        appname     = utils.get_reqvar(request, "username")
+        password    = utils.get_reqvar(request, "password")
 
+        # go for it!!!
+
+    @decos.require_parameters("username", "appname")
     def delete_app(self, request):
         """
         Deletes an app.
         """
+        username = utils.get_reqvar(request, "username")
+        appname = utils.get_reqvar(request, "username")
 
     def change_app_password(self, request):
         """

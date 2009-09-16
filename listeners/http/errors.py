@@ -16,18 +16,48 @@
 #
 ###############################################################################
 
-import utils
+import json
 
-UNAME_NOT_SPECIFIED         = -1
-UNAME_PWD_NOT_SPECIFIED     = -2
+PARAMETER_MISSING           = -1
 PASSWORD_INVALID            = -3
 PASSWORD_INCORRECT          = -4
 
 ERROR_STRINGS   = [
     "",
     "username not specified",
-    "username and/or password not specified"
+    "password not specified"
     "invalid password",
     "incorrect password",
+    "appname not specified",
 ]
+
+def json_error_page(request, error_code, result, status = 501):
+    if not result:
+        result = ERROR_STRING[-error_code]
+    return json.json_response(request, error_code, result, status)
+
+def no_resource_error(request, status = 501):
+    """
+    Returns a 404 No Resource error for a request.
+    """
+    request.setResponseCode(401)
+    request.setHeader("content-type", "text/html")
+    return (""" <html><title>No Such Resource</title><body><h1>No Such Resource</h1><p>Resource Not Found: %s.</p></body></html>""" % request.URLPath())
+
+def auth_required_error(request):
+    """
+    Returns an auth-required page for requires that need but fail
+    authentication.
+    """
+    request.setResponseCode(401)
+    request.setHeader("content-type", "text/html")
+    return ("""
+    <html><title>Unauthenticated</title><body><h1>Unauthenticated</h1><p>Please
+    authenticate yourself.</p></body></html>""")
+
+def param_missing_error(request, param, status = 501):
+    """
+    An error indicating missing parameters.
+    """
+    return json_error_page(request, PARAMETER_MISSING, param, status)
 

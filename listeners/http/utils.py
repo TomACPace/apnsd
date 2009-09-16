@@ -16,14 +16,42 @@
 #
 ###############################################################################
 
-from twisted.web import server, resource
 from twisted.web import error as twerror
+import errors
+import simplejson
 
-# to do errors do this:
-# page = error.NoResource(message  "Resource %s not found" % request.URLPath())
-# return page.render(request)
+def no_resource_error(request):
+    """
+    Returns a 404 No Resource error for a request.
+    """
+    page = twerror.NoResource("Resource %s not found" % request.URLPath())
+    return page.render(request)
 
-def ensure_request_authenticated(auth_function):
+def auth_required_error(request):
+    """
+    Returns an auth-required page for requires that need but fail
+    authentication.
+    """
+    request.setResponseCode(401)
+    request.setHeader("content-type", "text/html")
+    return ("""
+    <html><title>Unauthenticated</title><body><h1>Unauthenticated</h1><p>Please
+    authenticate yourself.</p></body></html>""")
+
+def json_response(request, code, value, status = 200):
+    """
+    Returns an application/json content with the code and value.
+    """
+    result = api_result(code, value)
+    request.setResponseCode(status)
+    request.setHeader("Content-type", "text/html")
+    # request.setHeader("Content-type", "application/json")
+    return json_encode(result)
+
+def json_error_page(request, error_code, status = 501):
+    return json_response(request, error_code, errors.ERROR_STRINGS[-error_code], status)
+
+def ensure_request_authenticated(auth_function, **auth_kwargs):
     """
     A decorator that ensures that the requests handled by render and
     render_METHOD methods in a resource handler are authenticated.
@@ -32,9 +60,41 @@ def ensure_request_authenticated(auth_function):
     """
     def ensure_request_authenticated_decorator(func):
         def ensure_request_authenticated_method(resource, request):
-            if auth_function and not auth_function(resource, request):
-                return "Not Authenticated Error"
+            if auth_function and not auth_function(resource, request, **auth_kwargs):
+                return auth_required_error(request)
             else:
                 return func(resource, request)
         return ensure_request_authenticated_method
     return ensure_request_authenticated_decorator
+
+class OurJsonEncoder(simplejson.JSONEncoder):
+    def default(self, o):
+        if type(o) is datetime.datetime:
+            return str(o)
+        return super(OurJsonEncoder, self).default(o)
+
+def json_encode(data):
+    return OurJsonEncoder().encode(data)
+
+def json_decode(data):
+    if data:
+        from simplejson.decoder import JSONDecoder as jdec
+        return jdec().decode(data)
+    else:
+        return None
+
+def api_result(code, value):
+    """
+    Encodes a code and value in json dict.
+    """
+    return {'code': code, 'value': value}
+
+def get_reqvar(request, param, defaultval = None):
+    """
+    Returns a GET parameter in a request.
+    If the parameter was not found then the defaultval is returned.
+    """
+    if param in request.args:
+        return request.args[param][0]
+    return defaultval
+

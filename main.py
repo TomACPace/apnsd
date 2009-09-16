@@ -82,5 +82,10 @@ def main():
     apns_daemon.run()
 
 if __name__ == "__main__":
-    main()
+    use_reloader = False
+    if use_reloader:
+        import utils.autoreload
+        utils.autoreload.main(main)
+    else:
+        main()
 

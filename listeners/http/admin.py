@@ -17,7 +17,8 @@
 ###############################################################################
 
 from twisted.web import server, resource
-from twisted.web import error as twerror
+import utils, auth, errors
+from utils import json_response, json_error_page
 
 
 class APNSAdminResource(resource.Resource):
@@ -47,7 +48,7 @@ class APNSAdminUsersResource(resource.Resource):
             Other noteworthy parameters can also be passed here. 
         2. /delete/?username=<email/username>
             Deleting an app by the given name.
-        3. /password/
+        3. /passwd/
             Changes the password for a user.  The request MUST contain the
             old and the new passwords.  Also through out the http
             connector (and listener) we need uniform password schemes.
@@ -57,8 +58,43 @@ class APNSAdminUsersResource(resource.Resource):
         resource.Resource.__init__(self)
         self.apns_daemon = daemon
 
+    @utils.ensure_request_authenticated(auth.basic_auth, prefix="admin")
     def render(self, request):
-        parts = request.path.split("/")
+        # get the components in the path
+        # why 3 onwards? the resource does not split the co
+        parts = request.path.split("/")[3:]
+        if not parts:
+            return utils.no_resource_error(request)
+            
+        command, parts = parts[0], parts[1:]
+        if command == 'create':
+            return self.create_new_user(request)
+        elif command == 'delete':
+            return self.delete_user(request)
+        elif command == 'passwd':
+            return self.change_user_password(request)
+        else:
+            return utils.no_resource_error(request)
+            
+    def create_new_user(self, request):
+        username    = utils.get_reqvar(request, "username")
+        password    = utils.get_reqvar(request, "password")
+        if not (username and password):
+            return json_error_page(request, errors.UNAME_PWD_NOT_SPECIFIED)
+            
+    def delete_user(self, request):
+        username    = utils.get_reqvar(request, "username")
+        if not username:
+            return json_error_page(request, errors.UNAME_NOT_SPECIFIED)
+            
+    def change_user_password(self, request):
+        username    = utils.get_reqvar(request, "username")
+        newpassword = utils.get_reqvar(request, "newpassword")
+        if not username or newpassword:
+            return json_error_page(request, errors.UNAME_PWD_NOT_SPECIFIED)
+
+    def is_password_valid(self, password):
+        # tells if a password is valid or not
 
 class APNSAdminAppsResource(resource.Resource):
     """
@@ -84,4 +120,40 @@ class APNSAdminAppsResource(resource.Resource):
         self.apns_daemon = daemon
 
     def render(self, request):
-        parts = request.path.split("/")
+        # get the components in the path
+        # why 3 onwards? the resource does not split the co
+        parts = request.path.split("/")[3:]
+        if not parts:
+            return utils.no_resource_error(request)
+            
+        command, parts = parts[0], parts[1:]
+        if command == 'create':
+            return self.create_new_app(request)
+        elif command == 'delete':
+            return self.delete_app(request)
+        elif command == 'password':
+            return self.change_app_password(request)
+        elif command == 'certupload':
+            return self.upload_app_certificate(request)
+        else:
+            return utils.no_resource_error(request)
+    
+    def create_new_app(self, request):
+        """
+        Creates a new app.
+        """
+
+    def delete_app(self, request):
+        """
+        Deletes an app.
+        """
+
+    def change_app_password(self, request):
+        """
+        Changes the app password.
+        """
+
+    def upload_app_certificate(self, request):
+        """
+        Uploads a dev or provisioning certificate for an app.
+        """

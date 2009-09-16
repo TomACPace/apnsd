@@ -16,8 +16,8 @@
 #
 ###############################################################################
 
-from twisted.web import server, resource
-from twisted.web import error as twerror
+from twisted.web2 import server, resource
+from twisted.web2 import error as twerror
 
 class APNSAppsResource(resource.Resource):
     """

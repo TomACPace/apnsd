@@ -18,6 +18,7 @@
 
 from twisted.web import server, resource
 from twisted.web import error as twerror
+import pyrant
 
 class APNSAppsResource(resource.Resource):
     """
@@ -27,7 +28,8 @@ class APNSAppsResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.apns_daemon = daemon
+        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
+        self.apns_daemon    = daemon
 
     def render_GET(self, request):
         parts = request.path.split("/")

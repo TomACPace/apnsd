@@ -19,16 +19,26 @@
 from twisted.web import server, resource
 import utils, auth, errors
 import decorators as decos
-from json import json_response
+import pyrant, datetime
+from json import json_response, json_encode, api_result
 
+def get_user_key(username):
+    return 'user_' + username
 
-def is_password_valid(self, password):
+def get_app_key(username, appname):
+    return "app_" + username + "_" + appname
+
+def is_password_valid(password):
     """
     tells if a password is valid or not by doing simple checks like
     checking for length, character types and so on.
     """
     return True
 
+def password_hash(username, password):
+    # stores the hash of the password
+    pass
+    
 class APNSAdminResource(resource.Resource):
     """
     The admin resource handler.
@@ -40,8 +50,8 @@ class APNSAdminResource(resource.Resource):
     """
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.apns_daemon = daemon
-        self.apps_resource = APNSAdminAppsResource(daemon, **kwds)
+        self.apns_daemon    = daemon
+        self.apps_resource  = APNSAdminAppsResource(daemon, **kwds)
         self.users_resource = APNSAdminUsersResource(daemon, **kwds)
         self.putChild("apps", self.apps_resource)
         self.putChild("users", self.users_resource)
@@ -64,7 +74,8 @@ class APNSAdminUsersResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.apns_daemon = daemon
+        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
+        self.apns_daemon    = daemon
 
     @decos.ensure_request_authenticated(auth.basic_auth, prefix="admin")
     def render(self, request):
@@ -90,14 +101,50 @@ class APNSAdminUsersResource(resource.Resource):
         username    = utils.get_reqvar(request, "username")
         password    = utils.get_reqvar(request, "password")
 
+        userkey     = get_user_key(username)
+        if userkey in self.tyrant:
+            return errors.json_error_page(request, errors.USER_ALREADY_EXISTS)
+        
+        if not is_password_valid(password):
+            return errors.json_error_page(request, errors.PASSWORD_INVALID)
+
+        self.tyrant[userkey] = json_encode({'username': username,
+                                            'pwdreset': False,
+                                            'password': password_hash(username, password),
+                                            'created': datetime.datetime.now()})
+
+        return json_encode(api_result(0, "OK"))
+
     @decos.require_parameters("username")
     def delete_user(self, request):
         username    = utils.get_reqvar(request, "username")
+
+        userkey     = 'user_' + username
+        if userkey not in self.tyrant:
+            return errors.json_error_page(request, errors.USER_DOES_NOT_EXIST)
+
+        del self.tyrant[userkey]
+
+        return json_encode(api_result(0, "OK"))
             
     @decos.require_parameters("username", "newpassword")
     def change_user_password(self, request):
         username    = utils.get_reqvar(request, "username")
         newpassword = utils.get_reqvar(request, "newpassword")
+
+        userkey     = get_user_key(username)
+        if userkey not in self.tyrant:
+            return errors.json_error_page(request, errors.USER_DOES_NOT_EXIST)
+        
+        if not is_password_valid(newpassword):
+            return errors.json_error_page(request, errors.PASSWORD_INVALID)
+
+        userdata                = json_decode(self.tyrant[userkey])
+        userdata['pwdreset']    = False
+        userdata['password']    = password_hash(username, newpassword)
+        self.tyrant[userkey]    = json_encode(userdata)
+
+        return json_encode(api_result(0, "OK"))
 
 class APNSAdminAppsResource(resource.Resource):
     """
@@ -120,7 +167,8 @@ class APNSAdminAppsResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.apns_daemon = daemon
+        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
+        self.apns_daemon    = daemon
 
     def render(self, request):
         # get the components in the path
@@ -149,6 +197,24 @@ class APNSAdminAppsResource(resource.Resource):
         username    = utils.get_reqvar(request, "username")
         appname     = utils.get_reqvar(request, "appname")
 
+        userkey     = get_user_key(username)
+        if userkey in self.tyrant:
+            return errors.json_error_page(request, errors.USER_ALREADY_EXISTS)
+        
+        appkey      = get_app_key(username, appname)
+        if appkey in self.tyrant:
+            return errors.json_error_page(request, errors.APP_ALREADY_EXISTS)
+
+        self.tyrant[appkey] = json_encode({'username': username,
+                                           'appname': appname,
+                                           'dev_pkeyfile': "",
+                                           'dev_certfile': "",
+                                           'prod_pkeyfile': "",
+                                           'prod_certfile': "",
+                                           'created': datetime.datetime.now()})
+
+        return json_encode(api_result(0, "OK"))
+
     @decos.require_parameters("username", "appname")
     def delete_app(self, request):
         """
@@ -156,6 +222,18 @@ class APNSAdminAppsResource(resource.Resource):
         """
         username = utils.get_reqvar(request, "username")
         appname = utils.get_reqvar(request, "appname")
+
+        userkey     = get_user_key(username)
+        if userkey not in self.tyrant:
+            return errors.json_error_page(request, errors.USER_DOES_NOT_EXIST)
+        
+        appkey      = get_app_key(username, appname)
+        if appkey not in self.tyrant:
+            return errors.json_error_page(request, errors.APP_DOES_NOT_EXIST)
+
+        del self.tyrant[appkey]
+
+        return json_encode(api_result(0, "OK"))
 
     @decos.require_parameters("username", "appname")
     def change_app_password(self, request):

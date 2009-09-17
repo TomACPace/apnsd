@@ -19,21 +19,27 @@
 import json
 
 PARAMETER_MISSING           = -1
-PASSWORD_INVALID            = -3
-PASSWORD_INCORRECT          = -4
+PASSWORD_INVALID            = -2
+PASSWORD_INCORRECT          = -3
+USER_ALREADY_EXISTS         = -4
+USER_DOES_NOT_EXIST         = -5
+APP_ALREADY_EXISTS          = -6
+APP_DOES_NOT_EXIST          = -7
 
 ERROR_STRINGS   = [
     "",
-    "username not specified",
-    "password not specified"
-    "invalid password",
+    "Parameter missing",
+    "Invalid password",
     "incorrect password",
-    "appname not specified",
+    "User already exists.",
+    "User does not exist.",
+    "App already exists for user.",
+    "App does not exist for user.",
 ]
 
-def json_error_page(request, error_code, result, status = 501):
+def json_error_page(request, error_code, result = None, status = 501):
     if not result:
-        result = ERROR_STRING[-error_code]
+        result = ERROR_STRINGS[-error_code]
     return json.json_response(request, error_code, result, status)
 
 def no_resource_error(request, status = 501):

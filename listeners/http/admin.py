@@ -74,8 +74,12 @@ class APNSAdminUsersResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
         self.apns_daemon    = daemon
+        self.cert_folder    = kwds.get("cert_folder")
+        self.tyrant_host    = kwds.get("tyrant_host", "localhost")
+        self.tyrant_port    = kwds.get("tyrant_port", 1978)
+        self.tyrant         = pyrant.Tyrant(host = self.tyrant_host,
+                                            port = self.tyrant_port)
 
     @decos.ensure_request_authenticated(auth.basic_auth, prefix="admin")
     def render(self, request):
@@ -167,8 +171,6 @@ class APNSAdminAppsResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
-        self.apns_daemon    = daemon
 
     def render(self, request):
         # get the components in the path
@@ -250,6 +252,6 @@ class APNSAdminAppsResource(resource.Resource):
         """
         username    = utils.get_reqvar(request, "username")
         appname     = utils.get_reqvar(request, "appname")
-        certfile    = utils.get_reqvar(request, "certfile")
         certtype    = utils.get_reqvar(request, "certtype")
+        certfile    = utils.get_reqvar(request, "certfile")
 

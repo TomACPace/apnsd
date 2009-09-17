@@ -27,7 +27,14 @@
             'class': 'listeners.http.site.APNSSite',
             'interface': "localhost",  #default
             'secure': False,
-            'port': 99
+            'port': 99,
+
+            # where is the tyrant server running?
+            # why do we need a tyrant server?  the http interface allows
+            # one to register users and apps dynamically at runtime
+            'tyrant_host': "localhost",     #default    - localhost
+            'tyrant_port': "1978",          #default    - 1978
+            'cert_folder': "/tmp/apnsd.certificates",
         },
     },
 

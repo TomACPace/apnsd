@@ -28,8 +28,12 @@ class APNSAppsResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
-        self.tyrant         = pyrant.Tyrant(host = 'localhost', port = 1978)
         self.apns_daemon    = daemon
+        self.cert_folder    = kwds.get("cert_folder")
+        self.tyrant_host    = kwds.get("tyrant_host", "localhost")
+        self.tyrant_port    = kwds.get("tyrant_port", 1978)
+        self.tyrant         = pyrant.Tyrant(host = self.tyrant_host,
+                                            port = self.tyrant_port)
 
     def render_GET(self, request):
         parts = request.path.split("/")

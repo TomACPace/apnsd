@@ -21,16 +21,18 @@ import json
 PARAMETER_MISSING           = -1
 PASSWORD_INVALID            = -2
 PASSWORD_INCORRECT          = -3
-USER_ALREADY_EXISTS         = -4
-USER_DOES_NOT_EXIST         = -5
-APP_ALREADY_EXISTS          = -6
-APP_DOES_NOT_EXIST          = -7
+USERNAME_INVALID            = -4
+USER_ALREADY_EXISTS         = -5
+USER_DOES_NOT_EXIST         = -6
+APP_ALREADY_EXISTS          = -7
+APP_DOES_NOT_EXIST          = -8
 
 ERROR_STRINGS   = [
     "",
     "Parameter missing",
     "Invalid password",
     "incorrect password",
+    "Username invalid.",
     "User already exists.",
     "User does not exist.",
     "App already exists for user.",

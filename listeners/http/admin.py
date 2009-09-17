@@ -141,14 +141,13 @@ class APNSAdminAppsResource(resource.Resource):
         else:
             return errors.no_resource_error(request)
     
-    @decos.require_parameters("username", "appname", "password")
+    @decos.require_parameters("username", "appname")
     def create_new_app(self, request):
         """
         Creates a new app.
         """
         username    = utils.get_reqvar(request, "username")
         appname     = utils.get_reqvar(request, "appname")
-        password    = utils.get_reqvar(request, "password")
 
     @decos.require_parameters("username", "appname")
     def delete_app(self, request):
@@ -158,14 +157,13 @@ class APNSAdminAppsResource(resource.Resource):
         username = utils.get_reqvar(request, "username")
         appname = utils.get_reqvar(request, "appname")
 
-    @decos.require_parameters("username", "appname", "password")
+    @decos.require_parameters("username", "appname")
     def change_app_password(self, request):
         """
         Changes the app password.
         """
         username    = utils.get_reqvar(request, "username")
         appname     = utils.get_reqvar(request, "appname")
-        password    = utils.get_reqvar(request, "password")
 
     @decos.require_parameters("username", "appname", "certfile", "certtype")
     def upload_app_certificate(self, request):

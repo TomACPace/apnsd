@@ -1,0 +1,6 @@
+
+Requirements:
+-------------
+OpenSSL - http://pyopenssl.sourceforge.net/
+simplejson - http://pypi.python.org/pypi/simplejson/
+twisted - http://twistedmatrix.com

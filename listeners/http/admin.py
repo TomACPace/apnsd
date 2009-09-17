@@ -184,8 +184,6 @@ class APNSAdminAppsResource(resource.Resource):
             return self.create_new_app(request)
         elif command == 'delete':
             return self.delete_app(request)
-        elif command == 'password':
-            return self.change_app_password(request)
         elif command == 'certupload':
             return self.upload_app_certificate(request)
         else:
@@ -237,15 +235,7 @@ class APNSAdminAppsResource(resource.Resource):
 
         return json_encode(api_result(0, "OK"))
 
-    @decos.require_parameters("username", "appname")
-    def change_app_password(self, request):
-        """
-        Changes the app password.
-        """
-        username    = utils.get_reqvar(request, "username")
-        appname     = utils.get_reqvar(request, "appname")
-
-    @decos.require_parameters("username", "appname", "certfile", "certtype")
+    @decos.require_parameters("username", "appname", "certtype", "certfile")
     def upload_app_certificate(self, request):
         """
         Uploads a dev or provisioning certificate for an app.

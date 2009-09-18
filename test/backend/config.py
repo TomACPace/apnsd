@@ -27,7 +27,7 @@
             'class': 'listeners.http.site.APNSSite',
             'interface': "localhost",  #default
             'secure': False,
-            'port': 99,
+            'port': 80,
 
             # where is the tyrant server running?
             # why do we need a tyrant server?  the http interface allows

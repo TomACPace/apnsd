@@ -35,10 +35,6 @@ def is_password_valid(password):
     """
     return True
 
-def password_hash(username, password):
-    # stores the hash of the password
-    pass
-    
 class APNSAdminResource(resource.Resource):
     """
     The admin resource handler.
@@ -114,10 +110,10 @@ class APNSAdminUsersResource(resource.Resource):
 
         self.tyrant[userkey] = json_encode({'username': username,
                                             'pwdreset': False,
-                                            'password': password_hash(username, password),
+                                            'password': password,
                                             'created': datetime.datetime.now()})
 
-        return json_encode(api_result(0, "OK"))
+        return json_response(request, 0, "OK")
 
     @decos.require_parameters("username")
     def delete_user(self, request):
@@ -129,7 +125,7 @@ class APNSAdminUsersResource(resource.Resource):
 
         del self.tyrant[userkey]
 
-        return json_encode(api_result(0, "OK"))
+        return json_response(request, 0, "OK")
             
     @decos.require_parameters("username", "newpassword")
     def change_user_password(self, request):
@@ -145,10 +141,10 @@ class APNSAdminUsersResource(resource.Resource):
 
         userdata                = json_decode(self.tyrant[userkey])
         userdata['pwdreset']    = False
-        userdata['password']    = password_hash(username, newpassword)
+        userdata['password']    = newpassword
         self.tyrant[userkey]    = json_encode(userdata)
 
-        return json_encode(api_result(0, "OK"))
+        return json_response(request, 0, "OK")
 
 class APNSAdminAppsResource(resource.Resource):
     """
@@ -171,6 +167,12 @@ class APNSAdminAppsResource(resource.Resource):
     isLeaf = True
     def __init__(self, daemon, **kwds):
         resource.Resource.__init__(self)
+        self.apns_daemon    = daemon
+        self.cert_folder    = kwds.get("cert_folder")
+        self.tyrant_host    = kwds.get("tyrant_host", "localhost")
+        self.tyrant_port    = kwds.get("tyrant_port", 1978)
+        self.tyrant         = pyrant.Tyrant(host = self.tyrant_host,
+                                            port = self.tyrant_port)
 
     def render(self, request):
         # get the components in the path
@@ -186,8 +188,8 @@ class APNSAdminAppsResource(resource.Resource):
             return self.delete_app(request)
         elif command == 'certupload':
             return self.upload_app_certificate(request)
-        else:
-            return errors.no_resource_error(request)
+
+        return errors.no_resource_error(request)
     
     @decos.require_parameters("username", "appname")
     def create_new_app(self, request):
@@ -198,8 +200,8 @@ class APNSAdminAppsResource(resource.Resource):
         appname     = utils.get_reqvar(request, "appname")
 
         userkey     = get_user_key(username)
-        if userkey in self.tyrant:
-            return errors.json_error_page(request, errors.USER_ALREADY_EXISTS)
+        if userkey not in self.tyrant:
+            return errors.json_error_page(request, errors.USER_DOES_NOT_EXIST)
         
         appkey      = get_app_key(username, appname)
         if appkey in self.tyrant:
@@ -213,7 +215,7 @@ class APNSAdminAppsResource(resource.Resource):
                                            'prod_certfile': "",
                                            'created': datetime.datetime.now()})
 
-        return json_encode(api_result(0, "OK"))
+        return json_response(request, 0, "OK")
 
     @decos.require_parameters("username", "appname")
     def delete_app(self, request):
@@ -222,10 +224,6 @@ class APNSAdminAppsResource(resource.Resource):
         """
         username = utils.get_reqvar(request, "username")
         appname = utils.get_reqvar(request, "appname")
-
-        userkey     = get_user_key(username)
-        if userkey not in self.tyrant:
-            return errors.json_error_page(request, errors.USER_DOES_NOT_EXIST)
         
         appkey      = get_app_key(username, appname)
         if appkey not in self.tyrant:
@@ -233,7 +231,7 @@ class APNSAdminAppsResource(resource.Resource):
 
         del self.tyrant[appkey]
 
-        return json_encode(api_result(0, "OK"))
+        return json_response(request, 0, "OK")
 
     @decos.require_parameters("username", "appname", "certtype", "certfile")
     def upload_app_certificate(self, request):
@@ -244,4 +242,16 @@ class APNSAdminAppsResource(resource.Resource):
         appname     = utils.get_reqvar(request, "appname")
         certtype    = utils.get_reqvar(request, "certtype")
         certfile    = utils.get_reqvar(request, "certfile")
+        
+        appkey      = get_app_key(username, appname)
+        if appkey not in self.tyrant:
+            return errors.json_error_page(request, errors.APP_DOES_NOT_EXIST)
 
+        contlength  = request.getHeader("content-length")
+        print "Headers: ", request.getAllHeaders()
+        print "Contents: ", dir(request.content)
+
+        # content     = request.content.decode("zlib")
+
+        # so how should the files be saved?
+        return json_response(request, -3, "Not OK", 500)

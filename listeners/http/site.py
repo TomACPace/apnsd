@@ -47,6 +47,13 @@ class APNSSite(server.Site):
         secure      = kwds.get("secure", False)
         port        = kwds.get("port", 443 if secure else 80)
 
+        if 'cert_folder' in kwds:
+            import os
+            try:
+                os.makedirs(os.path.abspath(kwds['cert_folder']))
+            except OSError, e:
+                if e.errno != 17: raise
+
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...
         print "Listening on APNSSite on %s:%d" % (interface, port)

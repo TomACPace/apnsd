@@ -39,7 +39,7 @@ ERROR_STRINGS   = [
     "App does not exist for user.",
 ]
 
-def json_error_page(request, error_code, result = None, status = 501):
+def json_error_page(request, error_code, result = None, status = 200):
     if not result:
         result = ERROR_STRINGS[-error_code]
     return json.json_response(request, error_code, result, status)

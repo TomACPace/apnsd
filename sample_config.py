@@ -20,12 +20,12 @@
     'listeners': {
         'line': {
             'class': 'listeners.line.LineProtocolFactory',
-            'interface': "localhost",  #default
+            'interface': "localhost",  #default: all interface
             'port': 90
         },
         'http': {
             'class': 'listeners.http.site.APNSSite',
-            'interface': "localhost",  #default
+            'interface': "localhost",  #default: all interface
             'secure': False,
             'port': 99,
 

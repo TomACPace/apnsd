@@ -16,6 +16,8 @@
 #
 ###############################################################################
 
+import logging
+
 class LineClient(object):
     """
     A helper class used by applications for sending messages to the line
@@ -23,23 +25,23 @@ class LineClient(object):
     data formatting manually.
     """
     def __init__(self, port = 90):
-        print "Creating Servers"
+        logging.debug("Creating line connector client...")
         self.serverPort = port
         self.servers = {}
 
     def sendMessage(self, app, devtoken, payload):
         if app not in self.servers:
-            print "Adding app to list: ", app
+            logging.debug("Adding app to list: " + app)
             self.servers[app] = {'socket': None}
 
         if not self.servers[app]['socket']:
             import socket
-            print "Connecting to app: ", app
+            logging.debug("Connecting to daemon for app: " + app)
             newsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             newsocket.connect(("localhost", self.serverPort))
             self.servers[app]['socket'] = newsocket
 
         line = str(app) + "," + devtoken + "," + payload.replace("\n", " ")
         result = self.servers[app]['socket'].send(line + "\r\n")
-        print "Result: ", result
+        logging.debug("Send message Result: " + result)
         return 0, "Successful"

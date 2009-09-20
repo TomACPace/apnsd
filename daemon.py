@@ -16,77 +16,73 @@
 #
 ###############################################################################
 
-import threading, Queue, optparse, os
-from twisted.internet.protocol import ClientFactory, Protocol
-import constants, errors
+import threading, Queue, optparse, os, logging
+from twisted.internet.protocol import ReconnectingClientFactory, Protocol
+import constants, errors, utils
 
 class APNSProtocol(Protocol):
     def __init__(self, messageQueue):
         """ Initialises the protocol with the message queue. """
         self.messageQueue = messageQueue
 
-    # 
-    # After a connection is made we send out messages in our queue
-    #
+    def closeConnection(self):
+        """
+        Closes the transport.
+        """
+        self.transport.loseConnection()
+
     def connectionMade(self):
-        # dispatch any buffered messages
+        """
+        After a connection is made we send out messages in our queue
+        """
         while not self.messageQueue.empty():
             deviceToken, payload = self.messageQueue.get()
             self.sendMessage(deviceToken, payload)
 
-    #
-    # Just print out the data we recieve from the APNS.
-    #
     def dataReceived(self, data):
-        print "APNS Data [(%d) bytes] Received: " % len(data), str(data)
-
-
-    def formatMessage(self, deviceToken, payload):
-        # notification messages are binary messages in network order 
-        # using the following format: 
-        # <1 byte command> <2 bytes length><token> <2 bytes length><payload>
-        import struct
-        fmt = "!h32sh%ds" % len(payload) 
-        command     = 0
-        if len(deviceToken) == 64:
-            # decode it then
-            deviceToken = "".join([ chr(int(deviceToken[2*i] + deviceToken[1 + 2*i], 16)) for i in xrange(0, 32) ])
-        tokenLength = len(deviceToken)
-        return '\x00' + struct.pack(fmt, tokenLength, deviceToken, len(payload), payload)
+        """
+        Called when server has sent us some data.  For now we just 
+        print out the data.
+        """
+        logging.debug("APNS Data [(%d) bytes] Received: " % len(data))
 
     def sendMessage(self, deviceToken, payload):
-        msg = self.formatMessage(deviceToken, payload)
-        print "Length: ", len(msg)
-        # print "Msg: ", [ (ord(m), chr(ord(m))) for m in msg ]
-        # self.transport.write(msg)
+        msg = utils.formatMessage(deviceToken, payload)
         self.transport.write(msg)
 
-class APNSFactory(ClientFactory):
+class APNSFactory(ReconnectingClientFactory):
     def __init__(self):
         self.currProtocol = None
         self.messageQueue = Queue.Queue()
 
-    def startedConnecting(self, connector):
-        print "Started to connect...", connector
-
-    def buildProtocol(self, addr):
-        print "Building APNS Protocol to APNS Server %s:%u" % (addr.host, addr.port)
-        self.currProtocol = APNSProtocol(self.messageQueue)
-
-        return self.currProtocol
+    def closeConnection(self):
+        if self.currProtocol:
+            self.currProtocol.closeConnection()
+            self.currProtocol = null;
 
     def clientConnectionLost(self, connector, reason):
-        print "Lost Connection, Reason: ", reason
+        logging.debug("Lost connection, Reason: " + reason)
         self.currProtocol = None
-        connector.connect()
+        super(APNSFactory, self).clientConnectionLost(connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        print "Failed Connection, Reason: ", reason
+        logging.debug("Connection Failed, Reason: " + reason)
         self.currProtocol = None
+        super(APNSFactory, self).clientConnectionFailed(connector, reason)
+
+    def startedConnecting(self, connector):
+        logging.debug("Started connecting to APNS connector....")
+
+    def buildProtocol(self, addr):
+        logging.debug("Building APNS Protocol to APNS Server %s:%u..." % (addr.host, addr.port))
+        if not self.currProtocol:
+            self.currProtocol = APNSProtocol(self.messageQueue)
+        else:
+            logging.debug("Protocol already exists, returning existing protocol...")
+        return self.currProtocol
 
     def getProtocol(self):
         """ Get the current protocol. """
-        print "Getting Protocol Object..."
         return self.currProtocol
 
     def sendMessage(self, deviceToken, payload):
@@ -95,7 +91,7 @@ class APNSFactory(ClientFactory):
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            print "Protocol not yet created.  Messaged queued..."
+            logging.debug("Protocol not yet created.  Messaged queued...")
             self.messageQueue.put((deviceToken, payload))
 
 class APNSDaemon(threading.Thread):
@@ -109,6 +105,17 @@ class APNSDaemon(threading.Thread):
         """
         self.reactor        = reactor
         self.connections    = {}
+
+    def unregisterApp(self, app_name):
+        """
+        Unregisters an app from the list of apps.
+        """
+        if app_name not in self.connections:
+            return
+
+        conn = self.connections[app_name]
+        del self.connections[app_name]
+        conn['client_factory'].closeConnection()
 
     def registerApp(self, app_name, certificate_file, privatekey_file,
                     apns_host       = constants.DEFAULT_APNS_DEV_HOST,
@@ -129,7 +136,7 @@ class APNSDaemon(threading.Thread):
         if privatekey_file:
             privatekey_file = os.path.abspath(privatekey_file)
 
-        print "Registering Application: %s..." % (app_name)
+        logging.info("Registering Application: %s..." % (app_name))
         from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
         from OpenSSL import SSL
         self.connections[app_name] = {
@@ -151,7 +158,6 @@ class APNSDaemon(threading.Thread):
         Sends a message/payload from a given app to a target device.
         """
         if orig_app not in self.connections:
-            print "Connections: ", self.connections
             raise errors.AppRegistrationError(orig_app, "Application not registered")
         
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
@@ -160,11 +166,11 @@ class APNSDaemon(threading.Thread):
         connection  = self.connections[orig_app]
         factory     = connection['client_factory']
         if connection['num_connections'] == 0:
-            print "Connecting to APNS Server, App: ", orig_app
+            logging.info("Connecting to APNS Server, App: ", orig_app)
             context_factory = connection['client_context_factory']
             self.reactor.connectSSL(connection['apns_host'],
-                               connection['apns_port'],
-                               factory, context_factory)
+                                    connection['apns_port'],
+                                    factory, context_factory)
             connection['num_connections'] = connection['num_connections'] + 1
 
         factory.sendMessage(target_device, payload)

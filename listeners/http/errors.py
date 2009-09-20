@@ -26,6 +26,9 @@ USER_ALREADY_EXISTS         = -5
 USER_DOES_NOT_EXIST         = -6
 APP_ALREADY_EXISTS          = -7
 APP_DOES_NOT_EXIST          = -8
+OS_ERROR                    = -9
+IO_ERROR                    = -10
+PKCS12_ERROR                = -11
 
 ERROR_STRINGS   = [
     "",
@@ -37,6 +40,9 @@ ERROR_STRINGS   = [
     "User does not exist.",
     "App already exists for user.",
     "App does not exist for user.",
+    "OS Error",
+    "IO Error",
+    "PKCS12 Error",
 ]
 
 def json_error_page(request, error_code, result = None, status = 200):

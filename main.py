@@ -17,7 +17,7 @@
 #
 ###############################################################################
 
-import constants, errors, daemon
+import constants, errors, daemon, logging
 
 def read_config_file(apns_daemon, config_file):
     """
@@ -47,10 +47,10 @@ def read_config_file(apns_daemon, config_file):
         else:
             listener_class    = eval(parts[-1])
 
-        print "Creating listener: ", listener_class
+        logging.debug("Creating listener: " + str(listener_class))
         listener = listener_class(apns_daemon, **listener_data)
-        print "Listener Created: ", listener
-        print "----------------------"
+        logging.debug("Listener Created: " + str(listener))
+        logging.debug("----------------------------------")
         
     apps = configs['apps']
     for app_key in apps:
@@ -82,6 +82,9 @@ def main():
     apns_daemon.run()
 
 if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level = logging.DEBUG)
+
     use_reloader = False
     if use_reloader:
         import utils.autoreload

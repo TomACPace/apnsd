@@ -18,6 +18,7 @@
 
 from twisted.web import server, resource
 from twisted.web import error as twerror
+import logging
 
 class APNSRootResource(resource.Resource):
     """
@@ -42,7 +43,7 @@ class APNSSite(server.Site):
         # we are changing the default interface from "all" to
         # localhost for security reasons...  if you really really mean to
         # make it all hosts then specify as all in the config file
-        interface   = kwds.get("interface", "localhost")
+        interface   = kwds.get("interface", None)
         backlog     = kwds.get("backlog", 50)
         secure      = kwds.get("secure", False)
         port        = kwds.get("port", 443 if secure else 80)
@@ -56,6 +57,10 @@ class APNSSite(server.Site):
 
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...
-        print "Listening on APNSSite on %s:%d" % (interface, port)
-        daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
+        if "interface" in kwds:
+            logging.debug("Listening on Line Protocol on %s:%d" % (interface, port))
+            daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
+        else:
+            logging.debug("Listening on Line Protocol on :%d" % port)
+            daemon.reactor.listenTCP(port, self, backlog = backlog)
 

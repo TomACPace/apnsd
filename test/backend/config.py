@@ -25,7 +25,7 @@
         },
         'http': {
             'class': 'listeners.http.site.APNSSite',
-            'interface': "localhost",  #default
+            'interface': "192.168.0.2",  #default
             'secure': False,
             'port': 80,
 

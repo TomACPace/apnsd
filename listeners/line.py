@@ -18,6 +18,7 @@
 
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import Factory, Protocol
+import logging
 
 class LineProtocol(LineReceiver):
     """
@@ -29,13 +30,13 @@ class LineProtocol(LineReceiver):
         self.apns_daemon    = daemon
 
     def lineReceived(self, line):
-        print "Received Line: ", line
+        logging.debug("Received Line: " + line)
         # each line will have 3 thinsgs - appname,deviceToken,payload
         coma1 = line.find(",")
         coma2 = line.find(",", coma1 + 1)
 
         if coma1 <= 0 or coma2 <= 0:
-            print "Disconnecting.  Invalid line: ", line
+            logging.debug("Disconnecting.  Invalid line: " + line)
             self.transport.loseConnection()
             return 
 
@@ -50,25 +51,26 @@ class LineProtocolFactory(Factory):
     """
     def __init__(self, daemon, **kwds):
         self.apns_daemon = daemon
-        # we change the interface from "all" to
-        # localhost for security reasons...  if you really really mean to
-        # make it all hosts then specify as all in the config file
-        interface   = kwds.get("interface", "localhost")
         backlog     = kwds.get("backlog", 50)
         port        = kwds.get("port")
-        print "Listening on Line Protocol on %s:%d" % (interface, port)
-        daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
+        interface   = kwds.get("interface", None)
+        if interface:
+            logging.debug("Listening on Line Protocol on %s:%d" % (interface, port))
+            daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
+        else:
+            logging.debug("Listening on Line Protocol on :%d" % port)
+            daemon.reactor.listenTCP(port, self, backlog = backlog)
 
     def startedConnecting(self, connector):
-        print "Started LineClient connection..."
+        logging.debug("Started LineClient connection...")
 
     def buildProtocol(self, addr):
-        print "Building LineProtocol Server %s:%u" % (addr.host, addr.port)
+        logging.debug("Building LineProtocol Server %s:%u" % (addr.host, addr.port))
         return LineProtocol(self.apns_daemon)
 
     def clientConnectionLost(self, connector, reason):
-        print "Lost Connection, Reason: ", reason
+        logging.debug("Lost Connection, Reason: " + reason)
 
     def clientConnectionFailed(self, connector, reason):
-        print "Failed Connection, Reason: ", reason
+        logging.debug("Failed Connection, Reason: " + reason)
 

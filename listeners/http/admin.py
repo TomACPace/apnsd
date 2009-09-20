@@ -19,14 +19,22 @@
 from twisted.web import server, resource
 import utils, auth, errors
 import decorators as decos
-import pyrant, datetime
-from json import json_response, json_encode, api_result
+import logging, struct, constants
+import OpenSSL, OpenSSL.crypto
+import pyrant, datetime, os, shutil, urllib2
+from json import json_response, json_decode, json_encode, api_result
 
 def get_user_key(username):
-    return 'user_' + username
+    return 'user$' + username
 
 def get_app_key(username, appname):
-    return "app_" + username + "_" + appname
+    return "app$" + username + "$" + appname
+
+def get_app_folder(username, appname):
+    return "%s/%s" % (username.lower()[0], appname)
+
+def get_app_cert_folder(username, appname):
+    return "%s/%s/certs" % (username.lower()[0], appname)
 
 def is_password_valid(password):
     """
@@ -174,6 +182,14 @@ class APNSAdminAppsResource(resource.Resource):
         self.tyrant         = pyrant.Tyrant(host = self.tyrant_host,
                                             port = self.tyrant_port)
 
+    def create_app_cert_folder(self, username, appname):
+        certfolder = "%s/%s" % (self.cert_folder, get_app_cert_folder(username, appname))
+        try:
+            os.makedirs(os.path.abspath(certfolder))
+        except OSError, e:
+            if e.errno != 17: raise
+        return certfolder
+
     def render(self, request):
         # get the components in the path
         # why 3 onwards? the resource does not split the co
@@ -213,7 +229,19 @@ class APNSAdminAppsResource(resource.Resource):
                                            'dev_certfile': "",
                                            'prod_pkeyfile': "",
                                            'prod_certfile': "",
+                                           'dev_pkeypasswd': "",
+                                           'dev_certpasswd': "",
+                                           'prod_pkeypasswd': "",
+                                           'prod_certpasswd': "",
                                            'created': datetime.datetime.now()})
+
+        # create the folder for the app so we have 
+        # certificates and other things in there
+        # <cert_folder>/<alphabet>/<appkey>/
+        try:
+            self.create_app_cert_folder(username, appname)
+        except OSError, e:
+            return errors.json_error_page(request, errors.OS_ERROR, str(e))
 
         return json_response(request, 0, "OK")
 
@@ -231,6 +259,11 @@ class APNSAdminAppsResource(resource.Resource):
 
         del self.tyrant[appkey]
 
+        try:
+            shutil.rmtree(self.get_app_folder(username, appname))
+        except OSError, e:
+            pass
+
         return json_response(request, 0, "OK")
 
     @decos.require_parameters("username", "appname", "certtype", "certfile")
@@ -242,16 +275,96 @@ class APNSAdminAppsResource(resource.Resource):
         appname     = utils.get_reqvar(request, "appname")
         certtype    = utils.get_reqvar(request, "certtype")
         certfile    = utils.get_reqvar(request, "certfile")
+        certpasswd  = urllib2.unquote(utils.get_reqvar(request, "certpasswd"))
+        pkeypasswd  = urllib2.unquote(utils.get_reqvar(request, "pkeypasswd"))
+        certcontlen = int(utils.get_reqvar(request, "certcontlen"))
+        pkeycontlen = int(utils.get_reqvar(request, "pkeycontlen"))
         
         appkey      = get_app_key(username, appname)
         if appkey not in self.tyrant:
             return errors.json_error_page(request, errors.APP_DOES_NOT_EXIST)
 
         contlength  = request.getHeader("content-length")
-        print "Headers: ", request.getAllHeaders()
-        print "Contents: ", dir(request.content)
+        logging.debug("Headers: " + str(request.getAllHeaders()))
+        content     = request.content.read()
+        logging.debug("Encoded Contents: " + str(type(content)) + ", " + str(len(content)))
+        content     = content.decode("zlib")
+        logging.debug("Decoded Contents: " + str(type(content)) + ", " + str(len(content)))
+        logging.debug("Passwords: %s, %s" % (certpasswd, pkeypasswd))
 
-        # content     = request.content.decode("zlib")
+        # strip the certfile and the pkeyfile
+        fmt = "%ds%ds" % (certcontlen, pkeycontlen)
+        cert_contents, pkey_contents = struct.unpack(fmt, content)
+
+        logging.debug("Cert Content Length: " + str(len(cert_contents)))
+        logging.debug("Pkey Content Length: " + str(len(pkey_contents)))
 
         # so how should the files be saved?
-        return json_response(request, -3, "Not OK", 500)
+        # for now our certfolder will be 
+        cert_folder = self.create_app_cert_folder(username, appname)
+
+        try:
+            cert_pem_file = self.p12_to_pem(cert_contents, certpasswd,
+                                "%s/%s_certificate" % (cert_folder, certtype), True)
+            pkey_pem_file = self.p12_to_pem(pkey_contents, pkeypasswd, 
+                                "%s/%s_privatekey" % (cert_folder, certtype), False)
+        except IOError, e:
+            return errors.json_error_page(request, errors.IO_ERROR, str(e))
+        except OpenSSL.crypto.Error, e:
+            logging.error("SSL Error: " + e.message)
+            return errors.json_error_page(request, errors.PKCS12_ERROR, "Incorrect password")
+
+        # save the updated passwords
+        app                 = json_decode(self.tyrant[appkey])
+        app['certpasswd']   = certpasswd
+        app['pkeypasswd']   = pkeypasswd
+        self.tyrant[appkey] = json_encode(app)
+
+        # finally unregister the app and register it again with the new
+        # certificates
+        if certtype == "production":
+            self.apns_daemon.unregisterApp("prod_" + appkey)
+            self.apns_daemon.registerApp("prod_" + appkey, cert_pem_file, pkey_pem_file,
+                                         constants.DEFAULT_APNS_PROD_HOST,
+                                         constants.DEFAULT_APNS_PROD_PORT,
+                                         constants.DEFAULT_FEEDBACK_PROD_HOST,
+                                         constants.DEFAULT_FEEDBACK_PROD_PORT)
+        else:
+            self.apns_daemon.unregisterApp("dev_" + appkey)
+            self.apns_daemon.registerApp("dev_" + appkey, cert_pem_file, pkey_pem_file)
+
+        return json_response(request, 0, "OK")
+
+    def p12_to_pem(self, contents, password = "", outfilename = "output",
+                   doingCertificate = True, save_p12_to_file = False):
+        """
+        Saves p12 data into pem files.
+        Whether the p12 represents certificate data or private key data is
+        specified in boolean parameter doingCertificate
+
+        The filename (without the .pem) is specified in outfile.
+        """
+
+        if save_p12_to_file:
+            # save the certificate .p12 file
+            outfile = open("%s.p12" % outfilename, "w")
+            outfile.write(contents)
+            outfile.close()
+
+        if doingCertificate:
+            pkcs12_obj  = OpenSSL.crypto.load_pkcs12(contents, password)
+            certif      = pkcs12_obj.get_certificate()
+            out_obj     = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, certif)
+        else:
+            pkcs12_obj  = OpenSSL.crypto.load_pkcs12(contents, password)
+            pkey        = pkcs12_obj.get_privatekey()
+            out_obj     = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, pkey)
+
+        logging.debug("Writing pem file: %s.pem, Size: %d" % (outfilename, len(out_obj)))
+        outfile = open("%s.pem" % outfilename, "w")
+        outfile.write(out_obj)
+        outfile.close()
+
+        # return the name of the output file
+        return outfilename + ".pem"
+

@@ -17,6 +17,7 @@
 ###############################################################################
 
 from twisted.web import server, resource
+import logging
 
 class APNSResource(resource.Resource):
     isLeaf = True
@@ -26,7 +27,6 @@ class APNSResource(resource.Resource):
 
     def render_GET(self, request):
         parts = request.path.split("/")
-        print "Rendering GET Request: ", parts
         return "Please use POST requests"
 
     def render_POST(self, request):
@@ -42,10 +42,8 @@ class APNSResource(resource.Resource):
         if 'alert' in request.args:
             payload['aps']['alert'] = request.args['alert'][0]
 
-        print "request headers: ", request.args
-        print "request path: ", parts
-        print "request content: ", request.content.read()
-        print "Rendering POST Request: ", parts, dir(request)
+        content = reuqest.content.read()
+
         return "OK"
 
 class APNSSite(server.Site):
@@ -63,7 +61,6 @@ class Client(object):
     apns-daemon via Http protocol.
     """
     def __init__(self, host = "localhost", port = 90):
-        print "Creating HTTP Client"
         self.serverHost = host
         self.serverPort = port
 

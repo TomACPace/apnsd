@@ -6,8 +6,8 @@ from django.utils.simplejson import decoder
 import  sys, logging, datetime, models
 
 import apnsd
-import apnsd.clients
-from    apnsd.clients import line
+import apnsd.connectors
+from    apnsd.connectors import line
 lineClient = line.LineClient()
 
 bundle_id = "apnstest"

@@ -30,6 +30,13 @@ def increment_device_counter():
         dev_counter.num_devices += 1
     db.put(dev_counter)
 
+def get_device_by_id(device_id):
+    device = models.Device.all().filter("id = ", device_id)
+    if device.count() > 0:
+        return device.fetch(1)[0]
+    else:
+        return None
+
 def get_or_create_device(device_token):
     device = Device.filter('device_token = ', device_token)
     if device.count() == 0:

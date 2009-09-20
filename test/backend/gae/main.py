@@ -1,6 +1,36 @@
 import logging, os, sys, models
+
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
+from django.utils import simplejson
+from django.utils.simplejson import decoder
+from django.utils.simplejson.encoder import JSONEncoder as jenc
+from django.utils.simplejson.decoder import JSONDecoder as jdec
+
+import apnsd
+import apnsd.connectors
+from apnsd.connectors import http
+
+httpClient = http.HttpClient("sripanyam.org")
+
+def get_var(request, variable, default_val = ""):
+    if request.GET and variable in request.GET:
+        return request.GET[variable]
+    elif request.POST and variable in request.POST:
+        return request.POST[variable]
+    else:
+        return default_val
+
+def get_getvar(request, variable, default_val = ""):
+    if request.GET and variable in request.GET:
+        return request.GET[variable]
+    return default_val
+
+
+def get_postvar(request, variable, default_val = ""):
+    if request.POST and variable in request.POST:
+        return request.POST[variable]
+    return default_val
 
 def render_template(page, template_file, template_values = {}):
     path = os.path.join(os.path.dirname(__file__), "templates/" + template_file)
@@ -28,14 +58,34 @@ class DevUnRegisterHandler(webapp.RequestHandler):
         self.redirect("/devices/")
 
 class DevNotifyHandler(webapp.RequestHandler):
-    def get(self, device_id):
-        device, newcreated  = models.get_or_create_device(device_token)
-        self.redirect("/devices/")
+    def post(self, device_id):
+        device = models.get_device_by_id(device_id)
+
+        if not device:
+            self.error(404)
+            self.response.out.write("Invalid device id")
+            return 
+
+        devtoken    = device.device_token
+        aps         = {"alert":str(request.POST['payload'])}
+        badge       = get_var(request, "badge", None)
+        if badge: aps["badge"] = int(badge)
+        sound       = get_var(request, "sound", None)
+        if sound: aps["sound"] = sound
+
+        payload     = jenc().encode({"aps": aps})
+        code, value = httpClient.sendMessage(bundle_id, devtoken, payload)
+        # code, value = 0, "Successfull"
+
+        return render_to_response("details.html",
+                                  {'device': device,
+                                   'notif_result': value})
+
 
 class DevDetailsHandler(webapp.RequestHandler):
     def get(self, device_id):
-        device = models.Device.all().filter("id = ", device_id)
-        if device.count() > 0:
+        device = models.get_device_by_id(device_id)
+        if device:
             render_template(self, "details.html", {'device': device})
         else:
             self.error(404)

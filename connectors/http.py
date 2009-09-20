@@ -16,53 +16,17 @@
 #
 ###############################################################################
 
-from twisted.web import server, resource
 import logging
 
-class APNSResource(resource.Resource):
-    isLeaf = True
-    def __init__(self, daemon, **kwds):
-        resource.Resource.__init__(self)
-        self.apns_daemon = daemon
-
-    def render_GET(self, request):
-        parts = request.path.split("/")
-        return "Please use POST requests"
-
-    def render_POST(self, request):
-        parts = request.path.split("/")
-        payload = {}    # should be request body 
-        if 'aps' not in payload:
-            payload['aps'] = {}
-
-        if 'badge' in request.args:
-            payload['aps']['badge'] = request.args['badge'][0]
-        if 'sound' in request.args:
-            payload['aps']['sound'] = request.args['sound'][0]
-        if 'alert' in request.args:
-            payload['aps']['alert'] = request.args['alert'][0]
-
-        content = reuqest.content.read()
-
-        return "OK"
-
-class APNSSite(server.Site):
-    def __init__(self, daemon, **kwds):
-        self.root_resource  = APNSResource(daemon, **kwds)
-        self.apns_daemon    = daemon
-
-        server.Site.__init__(self, self.root_resource)
-        daemon.reactor.listenTCP(kwds['port'], self)
-
-
-class Client(object):
+class HttpClient(object):
     """
     A helper class used by applications for sending messages to the
     apns-daemon via Http protocol.
     """
-    def __init__(self, host = "localhost", port = 90):
-        self.serverHost = host
-        self.serverPort = port
+    def __init__(self, password, host = "localhost", port = 80):
+        self.serverPassword = pasword
+        self.serverHost     = host
+        self.serverPort     = port
 
     def sendMessage(self, app, devtoken, payload):
         url = "http://%s:%d/%s/%s/" % (self.serverHost, self.serverPort, app, devtoken)

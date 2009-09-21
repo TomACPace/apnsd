@@ -12,6 +12,7 @@ skip_files:
 - tags.*
 - .*\.hg/.*
 - static/images/.*
+- apnsd/test/.*
 
 handlers:
 

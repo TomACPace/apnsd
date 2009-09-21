@@ -11,12 +11,14 @@
 @interface APNSTestAppDelegate : NSObject <UIApplicationDelegate> {
     UIWindow *window;
 	UITextView *theTextView;
+	UITextField *baseUrlTextView;
 	UISwitch *toggleNotificationSwitch;
 	NSMutableString *deviceTokenString;
 }
 
 @property (nonatomic, retain) IBOutlet UIWindow *window;
 @property (nonatomic, retain) IBOutlet UITextView *theTextView;
+@property (nonatomic, retain) IBOutlet UITextField *baseUrlTextView;
 @property (nonatomic, retain) IBOutlet UISwitch *toggleNotificationSwitch;
 
 -(IBAction)togglePushNotification:(id)sender;

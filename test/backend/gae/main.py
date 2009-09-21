@@ -11,7 +11,8 @@ import apnsd
 import apnsd.connectors
 from apnsd.connectors import http
 
-httpClient = http.HttpClient("sripanyam.org")
+httpClient = http.HttpClient("sri.panyam@gmail.com", "netpass1",
+                             "apnstest", "development", "http://sripanyam.org")
 
 def get_var(request, variable, default_val = ""):
     if request.GET and variable in request.GET:
@@ -50,7 +51,7 @@ class DevRegisterHandler(webapp.RequestHandler):
     def get(self, device_token):
         device, newcreated  = models.get_or_create_device(device_token)
         self.response.headers['Content-Type'] = "application/json"
-        self.response.out.write("{'code': 0, 'value': %d}" % device.id)
+        self.response.out.write("{'code': 0, 'value': %d}" % device.device_id)
 
 class DevUnRegisterHandler(webapp.RequestHandler):
     def get(self, device_token):
@@ -66,18 +67,22 @@ class DevNotifyHandler(webapp.RequestHandler):
             self.response.out.write("Invalid device id")
             return 
 
+        body        = self.request.body
         devtoken    = device.device_token
-        aps         = {"alert":str(request.POST['payload'])}
-        badge       = get_var(request, "badge", None)
+        aps         = {"alert":str(body)}
+        alert       = self.request.get("alert")
+        badge       = self.request.get("badge")
         if badge: aps["badge"] = int(badge)
-        sound       = get_var(request, "sound", None)
+        sound       = self.request.get("sound")
         if sound: aps["sound"] = sound
+        print >> sys.stderr, "Alert: ", alert
 
         payload     = jenc().encode({"aps": aps})
-        code, value = httpClient.sendMessage(bundle_id, devtoken, payload)
+        # code, value = httpClient.sendRawMessage(devtoken, payload)
+        code, value = httpClient.sendSimpleMessage(devtoken, badge, sound)
         # code, value = 0, "Successfull"
 
-        return render_to_response("details.html",
+        return render_template(self, "details.html",
                                   {'device': device,
                                    'notif_result': value})
 
@@ -94,10 +99,10 @@ class DevDetailsHandler(webapp.RequestHandler):
 def main():
     application = webapp.WSGIApplication(
         [
-            ('/devices/register/.*/', DevRegisterHandler),
-            ('/devices/unregister/.*/', DevUnRegisterHandler),
-            ('/devices/.*/notify', DevNotifyHandler),
-            ('/devices/.*/', DevDetailsHandler),
+            ('/devices/register/(.*)/', DevRegisterHandler),
+            ('/devices/unregister/(.*)/', DevUnRegisterHandler),
+            ('/devices/(.*)/notify/', DevNotifyHandler),
+            ('/devices/(.*)/', DevDetailsHandler),
             ('/devices/', DevListHandler),
             ('/', MainPage),
         ],

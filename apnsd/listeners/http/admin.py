@@ -88,7 +88,7 @@ class APNSAdminUsersResource(resource.Resource):
     @decos.ensure_request_authenticated(auth.basic_auth, prefix="admin")
     def render(self, request):
         # get the components in the path
-        # why 3 onwards? the resource does not split the co
+        # why 3 onwards? the resource does not split the components
         parts = request.path.split("/")[3:]
         if not parts:
             return errors.no_resource_error(request)

@@ -10,13 +10,8 @@
 
 @implementation APNSTestAppDelegate
 
-@synthesize window, theTextView;
+@synthesize window, theTextView, baseUrlTextView;
 @synthesize toggleNotificationSwitch;
-
-// change this to where the django backend is running
-// this is just a sample app that keeps of track of which devices 
-// are registering and unregistering for push notification...
-#define BACKEND_URL	"sripanyam.org"
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application 
 {
@@ -49,9 +44,9 @@
 		[sharedApplication unregisterForRemoteNotifications];
 		if ([deviceTokenString length] > 0)
 		{
+			NSString *url = [NSString stringWithFormat:@"http://%@/devices/unregister/%@/", baseUrlTextView.text, deviceTokenString, nil];
 			NSURLRequest *request = [[NSURLRequest alloc] initWithURL:
-									 [[NSURL alloc] initWithString:
-									  [NSString stringWithFormat:@"http://%s/devices/unregister/%@/", BACKEND_URL, deviceTokenString, nil]]];
+									 [[NSURL alloc] initWithString:url]];
 			NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:nil];
 			[self appendTextView:@"\nNoooooooo dont leave me.....   Il do anyting you say!!!"];
 			[connection release];
@@ -90,9 +85,9 @@
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken 
 {
 	self.deviceTokenString = deviceToken;
+	NSString *url = [NSString stringWithFormat:@"http://%@/devices/register/%@/", baseUrlTextView.text, deviceTokenString, nil];
 	NSURLRequest *request = [[NSURLRequest alloc] initWithURL:
-								[[NSURL alloc] initWithString:
-								 [NSString stringWithFormat:@"http://%s/devices/register/%@/", BACKEND_URL, deviceTokenString, nil]]];
+								[[NSURL alloc] initWithString:url]];
 	NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:nil];
 	[self appendTextView:@"\nBoy oh Boy.  You are so gonna love push notifications!!!"];
 	[self appendTextView:@"\nDevice Token: "];

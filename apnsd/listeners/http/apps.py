@@ -67,7 +67,7 @@ class APNSAppsResource(resource.Resource):
             payload = {'aps': {}}
 
         if badge:
-            payload['aps']['badge'] = badge
+            payload['aps']['badge'] = int(badge)
         if sound:
             payload['aps']['sound'] = sound
         if alert:

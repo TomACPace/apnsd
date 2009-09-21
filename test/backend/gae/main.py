@@ -69,18 +69,19 @@ class DevNotifyHandler(webapp.RequestHandler):
 
         body        = self.request.body
         devtoken    = device.device_token
-        aps         = {"alert":str(body)}
-        alert       = self.request.get("alert")
-        badge       = self.request.get("badge")
-        if badge: aps["badge"] = int(badge)
+        alert       = self.request.get("payload")
+        badge       = int(self.request.get("badge"))
         sound       = self.request.get("sound")
-        if sound: aps["sound"] = sound
-        print >> sys.stderr, "Alert: ", alert
 
-        payload     = jenc().encode({"aps": aps})
+        logging.debug("==============================================")
+        logging.debug("Alert: " + alert)
+
+        # aps         = {"alert":str(body)}
+        # if badge: aps["badge"] = badge
+        # if sound: aps["sound"] = sound
+        # payload     = jenc().encode({"aps": aps})
         # code, value = httpClient.sendRawMessage(devtoken, payload)
-        code, value = httpClient.sendSimpleMessage(devtoken, badge, sound)
-        # code, value = 0, "Successfull"
+        code, value = httpClient.sendSimpleMessage(devtoken, badge, sound, alert)
 
         return render_template(self, "details.html",
                                   {'device': device,

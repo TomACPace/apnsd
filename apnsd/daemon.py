@@ -61,24 +61,24 @@ class APNSFactory(ReconnectingClientFactory):
             self.currProtocol = null;
 
     def clientConnectionLost(self, connector, reason):
-        logging.debug("Lost connection, Reason: " + reason)
+        logging.info("Lost connection, Reason: " + str(reason))
         self.currProtocol = None
         super(APNSFactory, self).clientConnectionLost(connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        logging.debug("Connection Failed, Reason: " + reason)
+        logging.info("Connection Failed, Reason: " + str(reason))
         self.currProtocol = None
         super(APNSFactory, self).clientConnectionFailed(connector, reason)
 
     def startedConnecting(self, connector):
-        logging.debug("Started connecting to APNS connector....")
+        logging.info("Started connecting to APNS connector....")
 
     def buildProtocol(self, addr):
-        logging.debug("Building APNS Protocol to APNS Server %s:%u..." % (addr.host, addr.port))
+        logging.info("Building APNS Protocol to APNS Server %s:%u..." % (addr.host, addr.port))
         if not self.currProtocol:
             self.currProtocol = APNSProtocol(self.messageQueue)
         else:
-            logging.debug("Protocol already exists, returning existing protocol...")
+            logging.warning("Protocol already exists, returning existing protocol...")
         return self.currProtocol
 
     def getProtocol(self):
@@ -91,7 +91,7 @@ class APNSFactory(ReconnectingClientFactory):
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.debug("Protocol not yet created.  Messaged queued...")
+            logging.warning("Protocol not yet created.  Messaged queued...")
             self.messageQueue.put((deviceToken, payload))
 
 class APNSDaemon(threading.Thread):

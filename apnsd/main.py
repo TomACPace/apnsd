@@ -67,11 +67,18 @@ def parse_options(apns_daemon):
     parser = OptionParser(version = "%prog 0.1")
     parser.add_option("-c", "--config", dest = "configfile",
                       help="Config file to read application info from.", metavar = "CONFIG-FILE")
+    parser.add_option("-l", "--logfile", dest = "logfile",
+                      help="Path of the logfile.", metavar = "LOG-FILE")
 
     (options, args) = parser.parse_args()
 
     if not options.configfile:
         parser.error("Please specify a valid config filename with the -c option")
+
+    if options.logfile:
+        logging.basicConfig(filename = options.logfile, level = logging.DEBUG)
+    else:
+        logging.basicConfig(level = logging.DEBUG)
         
     read_config_file(apns_daemon, options.configfile)
 
@@ -80,11 +87,9 @@ def main():
     apns_daemon = daemon.APNSDaemon(reactor)
     parse_options(apns_daemon)
     apns_daemon.run()
+    logging.info("Exiting APNSD...")
 
 if __name__ == "__main__":
-    import logging
-    logging.basicConfig(level = logging.DEBUG)
-
     use_reloader = False
     if use_reloader:
         import utils.autoreload

@@ -57,10 +57,10 @@ class APNSSite(server.Site):
 
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...
-        if "interface" in kwds:
-            logging.debug("Listening on Line Protocol on %s:%d" % (interface, port))
+        if interface:
+            logging.debug("Listening on Http Protocol on %s:%d" % (interface, port))
             daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
         else:
-            logging.debug("Listening on Line Protocol on :%d" % port)
+            logging.debug("Listening on Http Protocol on :%d" % port)
             daemon.reactor.listenTCP(port, self, backlog = backlog)
 

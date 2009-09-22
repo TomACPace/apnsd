@@ -21,7 +21,7 @@
         'line': {
             'class': 'listeners.line.LineProtocolFactory',
             'interface': "localhost",  #default: all interface
-            'port': 90
+            'port': 9999,
         },
         'http': {
             'class': 'listeners.http.site.APNSSite',

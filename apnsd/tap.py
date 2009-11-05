@@ -69,6 +69,7 @@ def makeService(config):
     # which reactor are we using?  does this change with the --poll
     # parameter?
     from twisted.internet import reactor
+    logging.info("Reactor Type: " + str(reactor))
     apns_daemon = daemon.APNSDaemon(reactor)
     configs.read_listeners_in_config(config['configfile'], apns_daemon, config.service)
     configs.read_apps_in_config(config['configfile'], apns_daemon)

@@ -8,6 +8,7 @@ syntax: glob
 *.log
 *.bak
 tags*
+twisted/plugins/dropin.cache
 test/iphoneapp/build/*
 test/iphoneapp/Classes/._*.h
 test/iphoneapp/Classes/._*.m

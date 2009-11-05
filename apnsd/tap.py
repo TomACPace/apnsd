@@ -65,7 +65,6 @@ def makeService(config):
         logging.error("Please specify a config file with the -c option.")
         config.opt_help()
 
-
     # which reactor are we using?  does this change with the --poll
     # parameter?
     from twisted.internet import reactor

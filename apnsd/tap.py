@@ -21,7 +21,7 @@
 Support for creating a service which runs the APNS Daemon
 """
 
-import os, sys
+import os, sys, configs
 
 from twisted.cred import checkers
 from twisted.application import service, internet
@@ -42,7 +42,7 @@ class Options(usage.Options):
 
     def __init__(self):
         usage.Options.__init__(self)
-        self.service = service.MultiService("APNS Daemone Service")
+        self.service = service.MultiService()
         self['logfile'] = None
         self['loglevel'] = logging.DEBUG
         self['configfile'] = None
@@ -63,7 +63,12 @@ def makeService(config):
     
     if not config['configfile']:
         logging.error("Please specify a config file with the -c option.")
+        config.opt_help()
 
+
+    # which reactor are we using?  does this change with the --poll
+    # parameter?
+    from twisted.internet import reactor
     apns_daemon = daemon.APNSDaemon(reactor)
     configs.read_listeners_in_config(config['configfile'], apns_daemon, config.service)
     configs.read_apps_in_config(config['configfile'], apns_daemon)

@@ -17,7 +17,6 @@
 #
 ###############################################################################
 
-from twisted.internet import reactor
 from twisted.application import service, internet
 from twisted.python import log
 from twisted.python.log import ILogObserver, FileLogObserver
@@ -25,7 +24,7 @@ from twisted.python.logfile import DailyLogFile
 import constants, errors, daemon, logging, os
 
 class APNSApp(object):
-    def __init__(self):
+    def __init__(self, reactor = None):
         self.application = service.Application("APNS Daemon")
         self.apns_daemon = daemon.APNSDaemon(reactor)
         self.parse_options()

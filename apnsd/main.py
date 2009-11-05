@@ -21,8 +21,13 @@ import os, sys
 
 def main():
     print >> sys.stderr, "File: ", __file__, os.path.abspath(__file__)
+
+    # which reactor are we using?
+    # change the type of reactor being used here
+    from twisted.internet import reactor
+
     import app
-    application = app.APNSApp()
+    application = app.APNSApp(reactor)
     application.apns_daemon.run()
 
 if __name__ == "__main__":

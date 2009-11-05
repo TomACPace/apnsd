@@ -19,7 +19,8 @@
 from twisted.web import server, resource
 import utils, auth, errors
 import decorators as decos
-import logging, struct, constants
+import apnsd.constants
+import logging, struct
 import OpenSSL, OpenSSL.crypto
 import pyrant, datetime, os, shutil, urllib2
 from json import json_response, json_decode, json_encode, api_result
@@ -325,10 +326,10 @@ class APNSAdminAppsResource(resource.Resource):
         if certtype == "production":
             self.apns_daemon.unregisterApp("prod_" + appkey)
             self.apns_daemon.registerApp("prod_" + appkey, cert_pem_file, pkey_pem_file,
-                                         constants.DEFAULT_APNS_PROD_HOST,
-                                         constants.DEFAULT_APNS_PROD_PORT,
-                                         constants.DEFAULT_FEEDBACK_PROD_HOST,
-                                         constants.DEFAULT_FEEDBACK_PROD_PORT)
+                                         apnsd.constants.DEFAULT_APNS_PROD_HOST,
+                                         apnsd.constants.DEFAULT_APNS_PROD_PORT,
+                                         apnsd.constants.DEFAULT_FEEDBACK_PROD_HOST,
+                                         apnsd.constants.DEFAULT_FEEDBACK_PROD_PORT)
         else:
             self.apns_daemon.unregisterApp("dev_" + appkey)
             self.apns_daemon.registerApp("dev_" + appkey, cert_pem_file, pkey_pem_file)

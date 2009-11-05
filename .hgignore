@@ -7,6 +7,8 @@ syntax: glob
 *.pyo
 *.log
 *.bak
+*.pid
+*.log
 tags*
 twisted/plugins/dropin.cache
 test/iphoneapp/build/*

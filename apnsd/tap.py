@@ -38,14 +38,14 @@ class Options(usage.Options):
         ["logfile", "l", None, "Path of the logfile"]
     ]
 
-    longdesc = "This creates a apnsd.tap file that can be used by twistd."
+    longdesc = "Runs the APNS daemon as a twistd plugin."
 
     def __init__(self):
         usage.Options.__init__(self)
         self.service = service.MultiService()
         self['logfile'] = None
         self['loglevel'] = logging.DEBUG
-        self['configfile'] = None
+        self['config'] = None
 
 def makeService(config):
     if config['logfile']:
@@ -61,7 +61,7 @@ def makeService(config):
     else:
         logging.basicConfig(level = config['loglevel'])
     
-    if not config['configfile']:
+    if not config['config']:
         logging.error("Please specify a config file with the -c option.")
         config.opt_help()
 
@@ -71,7 +71,7 @@ def makeService(config):
     from twisted.internet import reactor
     logging.info("Reactor Type: " + str(reactor))
     apns_daemon = daemon.APNSDaemon(reactor)
-    configs.read_listeners_in_config(config['configfile'], apns_daemon, config.service)
-    configs.read_apps_in_config(config['configfile'], apns_daemon)
+    configs.read_listeners_in_config(config['config'], apns_daemon, config.service)
+    configs.read_apps_in_config(config['config'], apns_daemon)
     return config.service
 

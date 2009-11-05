@@ -19,12 +19,12 @@
 {
     'listeners': {
         'line': {
-            'class': 'listeners.line.LineProtocolFactory',
+            'class': 'apnsd.listeners.line.LineProtocolFactory',
             'interface': "localhost",  #default: all interface
             'port': 9999,
         },
         'http': {
-            'class': 'listeners.http.site.APNSSite',
+            'class': 'apnsd.listeners.http.site.APNSSite',
             'interface': "localhost",  #default: all interface
             'secure': False,
             'port': 99,

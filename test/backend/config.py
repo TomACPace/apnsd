@@ -21,7 +21,7 @@
         'line': {
             'class': 'apnsd.listeners.line.LineProtocolFactory',
             'interface': "localhost",  #default
-            'port': 90
+            'port': 9090
         },
         'http': {
             'class': 'apnsd.listeners.http.site.APNSSite',

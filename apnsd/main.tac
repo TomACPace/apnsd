@@ -17,15 +17,16 @@
 #
 ###############################################################################
 
-import os, sys
+def get_application():
+    import os, sys
+    # add the apnsd folder to the path so all other modules can be found by
+    # twistd
+    file_path = os.path.abspath(__file__)
+    apnsd_folder = os.path.dirname(os.path.abspath(__file__ + "/../"))
+    sys.path.append(apnsd_folder)
+    from apnsd import app
+    the_app = app.APNSApp()
+    return the_app
 
-# add the apnsd folder to the path so all other modules can be found by
-# twistd
-file_path = os.path.abspath(__file__)
-apnsd_folder = os.path.dirname(os.path.abspath(__file__ + "/../"))
-sys.path.append(apnsd_folder)
-
-import apnsd.app
-app = apnsd.app.APNSApp()
-application = app.application
+application = get_application()
 

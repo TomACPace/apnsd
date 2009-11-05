@@ -38,6 +38,7 @@ class APNSApp(object):
         parser.add_option("-l", "--logfile", dest = "logfile",
                           help="Path of the logfile.", metavar = "LOG-FILE")
 
+        print "=" * 80
         (options, args) = parser.parse_args()
 
         if not options.configfile:

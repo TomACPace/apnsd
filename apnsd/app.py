@@ -19,7 +19,10 @@
 
 from twisted.internet import reactor
 from twisted.application import service, internet
-import constants, errors, daemon, logging
+from twisted.python import log
+from twisted.python.log import ILogObserver, FileLogObserver
+from twisted.python.logfile import DailyLogFile
+import constants, errors, daemon, logging, os
 
 class APNSApp(object):
     def __init__(self):
@@ -42,9 +45,15 @@ class APNSApp(object):
             parser.error("Please specify a valid config filename with the -c option")
 
         if options.logfile:
-            application.setComponent(ILogObserver, FileLogObserver(options.logfile).emit)
-            logging.basicConfig(level = logging.DEBUG)
-            # logging.basicConfig(filename = options.logfile, level = logging.DEBUG)
+            use_twisted_logging = False
+            if use_twisted_logging:
+                logfile_base = os.path.basename(options.logfile)
+                logfile_parent = os.path.dirname(options.logfile)
+                logfile = DailyLogFile(logfile_base, logfile_parent)
+                self.application.setComponent(ILogObserver, FileLogObserver(logfile).emit)
+            else:
+                # logging.basicConfig(level = logging.DEBUG)
+                logging.basicConfig(filename = options.logfile, level = logging.DEBUG)
         else:
             logging.basicConfig(level = logging.DEBUG)
             
@@ -79,6 +88,7 @@ class APNSApp(object):
                 listener_class    = eval(parts[-1])
 
             logging.debug("Creating listener: " + str(listener_class))
+            log.msg("Creating listener: " + str(listener_class), logLevel = logging.DEBUG)
             listener = listener_class(self.apns_daemon, **listener_data)
             if listener_data.get("secure", False):
                 server = internet.SSLServer(listener_data["port"], listener)

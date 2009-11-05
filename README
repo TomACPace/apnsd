@@ -6,4 +6,24 @@ simplejson - http://pypi.python.org/pypi/simplejson/
 twisted - http://twistedmatrix.com
 TokyoCabinet and TokyoTyrant - http://1978th.net/tokyocabinet/
 
+Run the Tokyo Cabinet Server
+----------------------------
+First of all start TokyoCabinet.  TC can be started in two ways.  IN daemon
+mode or in test mode.
 
+To start the TC server in dev mode simply do:
+    ttserver -host <hostname = localhost> -port <port_num = 1978> -log <logfile> dbname
+
+TODO: To start the TC server in daemon mode:
+
+Run the Twisted App:
+--------------------
+Again this can also be started in daemon or dev mode.
+
+To start PD server in dev mode:
+    python <path_to_apnsd>/apnsd/main.py -c <config_file>
+
+The configuration file is a python file.  Look at the sample for an
+example.
+
+TODO: To start PD server in daemon mode.

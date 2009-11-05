@@ -20,7 +20,9 @@
 import os, sys
 
 def main():
-    print >> sys.stderr, "File: ", __file__, os.path.abspath(__file__)
+    parent_folder = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../")
+    sys.path.append(parent_folder)
+    print "Parent Folder: ", parent_folder
 
     # which reactor are we using?
     # change the type of reactor being used here

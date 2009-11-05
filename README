@@ -35,8 +35,6 @@ listen to on which hosts and ports etc.  Look at the sample for an example.
 
 The daemon/application mode is for a production style setup.  
 
-Simply run twistd -y <path_to_apnsd>/apnsd/main.tac -c <config_file>
-
-This can also be run in development mode by replacing -y with -noy to see
-all the debugging output.
+cd <path_to_apnsd>
+Simply run twistd -r <poll_type> apnsd -c <config_file>
 

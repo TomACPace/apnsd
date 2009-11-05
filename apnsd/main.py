@@ -17,9 +17,11 @@
 #
 ###############################################################################
 
-import app
+import os, sys
 
 def main():
+    print >> sys.stderr, "File: ", __file__, os.path.abspath(__file__)
+    import app
     application = app.APNSApp()
     application.apns_daemon.run()
 

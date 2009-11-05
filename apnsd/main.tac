@@ -17,8 +17,15 @@
 #
 ###############################################################################
 
-import app
+import os, sys
 
-app = app.APNSApp()
+# add the apnsd folder to the path so all other modules can be found by
+# twistd
+file_path = os.path.abspath(__file__)
+apnsd_folder = os.path.dirname(os.path.abspath(__file__ + "/../"))
+sys.path.append(apnsd_folder)
+
+import apnsd.app
+app = apnsd.app.APNSApp()
 application = app.application
 

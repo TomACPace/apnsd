@@ -43,8 +43,8 @@
     'apps': {
         'app1': {
             'app_id':           "apnstest",
-            'certificate_file': "../../../certs/apnstest/Certificates.pem",
-            'privatekey_file':  "../../../certs/apnstest/PrivateKey.unenc.pem",
+            'certificate_file': "../certs/apnstest/Certificates.pem",
+            'privatekey_file':  "../certs/apnstest/PrivateKey.unenc.pem",
         },
     }
 }

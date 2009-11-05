@@ -17,6 +17,10 @@
 #
 ###############################################################################
 
+"""
+Support for creating a service which runs the APNS Daemon
+"""
+
 import os, sys
 
 from twisted.cred import checkers

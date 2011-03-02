@@ -55,10 +55,10 @@ class LineProtocolFactory(Factory):
         port        = kwds.get("port")
         interface   = kwds.get("interface", None)
         if interface:
-            daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
+            #daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
             logging.info("Listening on Line Protocol on %s:%d" % (interface, port))
         else:
-            daemon.reactor.listenTCP(port, self, backlog = backlog)
+            #daemon.reactor.listenTCP(port, self, backlog = backlog)
             logging.info("Listening on Line Protocol on :%d" % port)
 
     def startedConnecting(self, connector):

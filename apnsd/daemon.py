@@ -62,13 +62,15 @@ class APNSFactory(ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         logging.info("Lost connection, Reason: " + str(reason))
-        self.currProtocol = None
-        super(APNSFactory, self).clientConnectionLost(connector, reason)
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+        #self.currProtocol = None
+        #super(APNSFactory, self).clientConnectionLost(connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
         logging.info("Connection Failed, Reason: " + str(reason))
-        self.currProtocol = None
-        super(APNSFactory, self).clientConnectionFailed(connector, reason)
+        ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
+        #self.currProtocol = None
+        #super(APNSFactory, self).clientConnectionFailed(connector, reason)
 
     def startedConnecting(self, connector):
         logging.info("Started connecting to APNS connector....")

@@ -48,6 +48,7 @@ class APNSProtocol(Protocol):
 
     def sendMessage(self, deviceToken, payload):
         msg = utils.formatMessage(deviceToken, payload)
+        logging.debug("Sending Data: " + msg)
         self.transport.write(msg)
 
 class APNSFactory(ReconnectingClientFactory):
@@ -183,5 +184,6 @@ class APNSDaemon(threading.Thread):
         # the first time a notification needs to be sent.  But instead we
         # listen to connection on the local network as we are the
         # standalone daemon.  
+        logging.info("APNS Daemon Started...")
         self.reactor.run()
 

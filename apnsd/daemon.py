@@ -48,7 +48,7 @@ class APNSProtocol(Protocol):
 
     def sendMessage(self, deviceToken, payload):
         msg = utils.formatMessage(deviceToken, payload)
-        logging.debug("Sending Data: " + msg)
+        logging.debug("Sending Data: " + str(msg))
         self.transport.write(msg)
 
 class APNSFactory(ReconnectingClientFactory):

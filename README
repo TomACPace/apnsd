@@ -22,24 +22,13 @@ mode or in test mode.
 
 2. Run the Twisted App:
 -----------------------
-Again this can also be started in daemon or dev mode.
 
-2.1 Running APNSD in Dev Mode:
-
-    python <path_to_apnsd>/apnsd/main.py -c <config_file>
-
-The configuration file is a python file which controls which listeners to
-listen to on which hosts and ports etc.  Look at the sample for an example.
-
-2.2     Running APNSD in Daemon/Application Mode
-
-The daemon/application mode is for a production style setup.  
+To run apnds as a daemon:
 
     cd <path_to_apnsd>
     twistd -r <poll_type> apnsd -c <config_file>
 
-However the above can also be run in non-daemon mode with (note the -n
-option):
+To run in non daemon mode:
 
     cd <path_to_apnsd>
     twistd -n -r <poll_type> apnsd -c <config_file>

@@ -40,6 +40,13 @@ class APNSSite(server.Site):
 
         server.Site.__init__(self, self.root_resource)
 
+        if 'cert_folder' in kwds:
+            import os
+            try:
+                os.makedirs(os.path.abspath(kwds['cert_folder']))
+            except OSError, e:
+                if e.errno != 17: raise
+
         # we are changing the default interface from "all" to
         # localhost for security reasons...  if you really really mean to
         # make it all hosts then specify as all in the config file
@@ -47,13 +54,6 @@ class APNSSite(server.Site):
         backlog     = kwds.get("backlog", 50)
         secure      = kwds.get("secure", False)
         port        = kwds.get("port", 443 if secure else 80)
-
-        if 'cert_folder' in kwds:
-            import os
-            try:
-                os.makedirs(os.path.abspath(kwds['cert_folder']))
-            except OSError, e:
-                if e.errno != 17: raise
 
         # check other things like whether we want to do SSL 
         # and which host/port we want to listen and so on...

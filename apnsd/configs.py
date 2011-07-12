@@ -35,7 +35,6 @@ def read_listeners_in_config(config_file, apns_daemon, service_parent):
         server.setServiceParent(service_parent)
 
         logging.debug("Listener Created: " + str(listener))
-        logging.debug("----------------------------------")
 
 def read_apps_in_config(config_file, apns_daemon):
     """

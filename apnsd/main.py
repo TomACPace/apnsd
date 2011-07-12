@@ -17,7 +17,8 @@
 #
 ###############################################################################
 
-import os, sys
+import os, sys, logging
+logging.getLogger().setLevel(1)
 
 def main():
     parent_folder = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../")

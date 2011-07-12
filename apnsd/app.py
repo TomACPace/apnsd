@@ -61,12 +61,3 @@ class APNSApp(object):
         configs.read_listeners_in_config(options.configfile, self.apns_daemon, self.application)
         configs.read_apps_in_config(options.configfile, self.apns_daemon)
 
-def main():
-    app = APNSApp()
-    application = app.application
-    application.apns_daemon.run()
-    logging.info("Exiting APNSD...")
-
-if __name__ == "__main__":
-    main()
-

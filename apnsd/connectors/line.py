@@ -36,7 +36,7 @@ class LineClient(object):
 
         if not self.servers[app]['socket']:
             import socket
-            logging.debug("Connecting to daemon for app: " + app)
+            logging.debug("Connecting to daemon for app: %s on port: %d" % (app, self.serverPort))
             newsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             newsocket.connect(("localhost", self.serverPort))
             self.servers[app]['socket'] = newsocket

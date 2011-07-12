@@ -1,4 +1,4 @@
-#!/bin/env python2.5
+#!/bin/env python
 ###############################################################################
 #
 # Copyright 2009, Sri Panyam
@@ -26,6 +26,8 @@ def main():
 
     # which reactor are we using?
     # change the type of reactor being used here
+    import twisted
+    import twisted.internet
     from twisted.internet import reactor
 
     import app

@@ -139,7 +139,6 @@ class APNSDaemon(threading.Thread):
 
         logging.info("Registering Application: %s..." % (app_name))
         from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
-        from OpenSSL import SSL
         self.connections[app_name] = {
             'num_connections':          0,
             'apns_host':                apns_host,
@@ -151,7 +150,6 @@ class APNSDaemon(threading.Thread):
             'client_factory':           APNSFactory(),
             'client_context_factory':   SSLContextFactory(privatekey_file,
                                                           certificate_file)
-                                                          # ,SSL.SSLv3_METHOD)
         }
 
     def sendMessage(self, app, device_token, payload, identifier = None, expiry = None):

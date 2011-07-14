@@ -36,8 +36,8 @@ class APNSProtocol(Protocol):
         After a connection is made we send out messages in our queue
         """
         while not self.messageQueue.empty():
-            deviceToken, payload = self.messageQueue.get()
-            self.sendMessage(deviceToken, payload)
+            deviceToken, payload, identifer, expiry = self.messageQueue.get()
+            self.sendMessage(deviceToken, payload, identifier, expiry)
 
     def dataReceived(self, data):
         """
@@ -46,8 +46,8 @@ class APNSProtocol(Protocol):
         """
         logging.debug("APNS Data [(%d) bytes] Received: " % len(data))
 
-    def sendMessage(self, deviceToken, payload):
-        msg = utils.formatMessage(deviceToken, payload)
+    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
+        msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
         self.transport.write(msg)
         logging.debug("Sent Message: %s" % str(map(ord, msg)))
 
@@ -88,14 +88,14 @@ class APNSFactory(ReconnectingClientFactory):
         """ Get the current protocol. """
         return self.currProtocol
 
-    def sendMessage(self, deviceToken, payload):
+    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
         if self.currProtocol:
-            self.currProtocol.sendMessage(deviceToken, payload)
+            self.currProtocol.sendMessage(deviceToken, payload, identifier, expiry)
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
             logging.warning("Protocol not yet created.  Messaged queued...")
-            self.messageQueue.put((deviceToken, payload))
+            self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSDaemon(threading.Thread):
     """ 
@@ -156,27 +156,27 @@ class APNSDaemon(threading.Thread):
                                                           # ,SSL.SSLv3_METHOD)
         }
 
-    def sendMessage(self, orig_app, target_device, payload):
+    def sendMessage(self, app, device_token, payload, identifier = None, expiry = None):
         """ 
         Sends a message/payload from a given app to a target device.
         """
-        if orig_app not in self.connections:
-            raise errors.AppRegistrationError(orig_app, "Application not registered")
+        if app not in self.connections:
+            raise errors.AppRegistrationError(app, "Application not registered")
         
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()
 
-        connection  = self.connections[orig_app]
+        connection  = self.connections[app]
         factory     = connection['client_factory']
         if connection['num_connections'] == 0:
-            logging.info("Connecting to APNS Server, App: %s" % orig_app)
+            logging.info("Connecting to APNS Server, App: %s" % app)
             context_factory = connection['client_context_factory']
             self.reactor.connectSSL(connection['apns_host'],
                                     connection['apns_port'],
                                     factory, context_factory)
             connection['num_connections'] = connection['num_connections'] + 1
 
-        factory.sendMessage(target_device, payload)
+        factory.sendMessage(device_token, payload, identifier, expiry)
 
     def run(self):
         # start the reactor

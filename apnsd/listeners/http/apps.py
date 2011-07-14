@@ -58,6 +58,8 @@ class APNSAppsResource(resource.Resource):
         sound       = utils.get_reqvar(request, "sound")
         alert       = utils.get_reqvar(request, "alert")
         env         = utils.get_reqvar(request, "env")
+        identifier  = utils.get_reqvar(request, "identifier")
+        expiry      = utils.get_reqvar(request, "expiry")
 
         if content:
             payload = json_decode(content)
@@ -76,7 +78,7 @@ class APNSAppsResource(resource.Resource):
         logging.debug("Payload: " + json_encode(payload))
 
         appkey = "%s$%s$%s" % (env, username, appname)
-        self.apns_daemon.sendMessage(appname, dev_token, json_encode(payload))
+        self.apns_daemon.sendMessage(appname, dev_token, json_encode(payload), identifier, expiry)
 
         return json_response(request, 0, "OK")
 

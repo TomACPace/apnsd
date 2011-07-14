@@ -29,7 +29,7 @@ class LineClient(object):
         self.serverPort = port
         self.servers = {}
 
-    def sendMessage(self, app, devtoken, payload):
+    def sendMessage(self, app, devtoken, payload, identifier = none, expiry = None):
         if app not in self.servers:
             logging.debug("Adding app to list: " + app)
             self.servers[app] = {'socket': None}

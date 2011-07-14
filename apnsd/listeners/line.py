@@ -30,20 +30,28 @@ class LineProtocol(LineReceiver):
         self.apns_daemon    = daemon
 
     def lineReceived(self, line):
-        # each line will have 3 thinsgs - appname,deviceToken,payload
+        # each line will have 5 things:
+        #   appname,deviceToken,identifier,expiry,payload
         coma1 = line.find(",")
         coma2 = line.find(",", coma1 + 1)
+        coma3 = line.find(",", coma2 + 1)
+        coma4 = line.find(",", coma3 + 1)
 
-        if coma1 <= 0 or coma2 <= 0:
-            logging.debug("Disconnecting.  Invalid line: " + line)
-            self.transport.loseConnection()
-            return 
-
-        app_name        = line[ : coma1]
-        device_token    = line[coma1 + 1 : coma2]
-        payload         = line[coma2 + 1 : ]
-        logging.debug("Received Line: " + line)
-        self.apns_daemon.sendMessage(app_name, device_token, payload)
+        if coma1 <= 0 or coma2 <= 0 or coma3 <= 0 or coma4 <= 0:
+            logging.debug("Invalid line: " + line)
+            logging.debug("Required Format: <appname>,<device token>,<identifier_or_None>,<expiry_or_None>,<payload>")
+        else:
+            app_name        = line[ : coma1]
+            device_token    = line[coma1 + 1 : coma2]
+            identifier      = line[coma2 + 1 : coma3]
+            expiry          = line[coma3 + 1 : coma4]
+            payload         = line[coma4 + 1 : ]
+            logging.debug("Received Line: " + line)
+            if identifier.lower() in ("none", "null", "nil"):
+                identifier = None
+            if expiry.lower() in ("none", "null", "nil"):
+                expiry = None
+            self.apns_daemon.sendMessage(app_name, device_token, payload, identifier, expiry)
 
 class LineProtocolFactory(Factory):
     """

@@ -36,7 +36,7 @@ class APNSProtocol(Protocol):
         After a connection is made we send out messages in our queue
         """
         while not self.messageQueue.empty():
-            deviceToken, payload, identifer, expiry = self.messageQueue.get()
+            deviceToken, payload, identifier, expiry = self.messageQueue.get()
             self.sendMessage(deviceToken, payload, identifier, expiry)
 
     def dataReceived(self, data):

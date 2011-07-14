@@ -29,7 +29,7 @@ class LineClient(object):
         self.serverPort = port
         self.servers = {}
 
-    def sendMessage(self, app, devtoken, payload, identifier = none, expiry = None):
+    def sendMessage(self, app, devtoken, payload, identifier = None, expiry = None):
         if app not in self.servers:
             logging.debug("Adding app to list: " + app)
             self.servers[app] = {'socket': None}
@@ -43,7 +43,7 @@ class LineClient(object):
 
         if type(payload) not in (str, unicode):
             payload = json.dumps(payload)
-        line = str(app) + "," + devtoken + "," + payload.replace("\n", " ")
+        line = "%s,%s,%s,%s,%s" % (app, devtoken, identifier, expiry, payload)
         result = self.servers[app]['socket'].send(line + "\r\n")
         logging.debug("Send message Result: " + str(result))
         return 0, "Successful"

@@ -113,12 +113,10 @@ class APNSDaemon(threading.Thread):
         """
         Unregisters an app from the list of apps.
         """
-        if app_name not in self.connections:
-            return
-
-        conn = self.connections[app_name]
-        del self.connections[app_name]
-        conn['client_factory'].closeConnection()
+        if app_name in self.connections:
+            conn = self.connections[app_name]
+            del self.connections[app_name]
+            conn['client_factory'].closeConnection()
 
     def registerApp(self, app_name, certificate_file, privatekey_file,
                     apns_host       = constants.DEFAULT_APNS_DEV_HOST,

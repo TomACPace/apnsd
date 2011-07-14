@@ -48,8 +48,8 @@ class APNSProtocol(Protocol):
 
     def sendMessage(self, deviceToken, payload):
         msg = utils.formatMessage(deviceToken, payload)
-        logging.debug("Sending Data: " + str(msg))
         self.transport.write(msg)
+        logging.debug("Sent Message: %s" % str(map(ord, msg)))
 
 class APNSFactory(ReconnectingClientFactory):
     def __init__(self):
@@ -169,7 +169,7 @@ class APNSDaemon(threading.Thread):
         connection  = self.connections[orig_app]
         factory     = connection['client_factory']
         if connection['num_connections'] == 0:
-            logging.info("Connecting to APNS Server, App: ", orig_app)
+            logging.info("Connecting to APNS Server, App: %s" % orig_app)
             context_factory = connection['client_context_factory']
             self.reactor.connectSSL(connection['apns_host'],
                                     connection['apns_port'],

@@ -30,7 +30,6 @@ class LineProtocol(LineReceiver):
         self.apns_daemon    = daemon
 
     def lineReceived(self, line):
-        logging.debug("Received Line: " + line)
         # each line will have 3 thinsgs - appname,deviceToken,payload
         coma1 = line.find(",")
         coma2 = line.find(",", coma1 + 1)
@@ -43,6 +42,7 @@ class LineProtocol(LineReceiver):
         app_name        = line[ : coma1]
         device_token    = line[coma1 + 1 : coma2]
         payload         = line[coma2 + 1 : ]
+        logging.debug("Received Line: " + line)
         self.apns_daemon.sendMessage(app_name, device_token, payload)
 
 class LineProtocolFactory(Factory):
@@ -69,8 +69,12 @@ class LineProtocolFactory(Factory):
         return LineProtocol(self.apns_daemon)
 
     def clientConnectionLost(self, connector, reason):
+        logging.info("Printing Lost Connection...")
         logging.info("Lost Connection, Reason: " + str(reason))
+        logging.info("Done Printing Lost Connection...")
 
     def clientConnectionFailed(self, connector, reason):
+        logging.info("Printing Connection Failed...")
         logging.info("Failed Connection, Reason: " + str(reason))
+        logging.info("Done Printing Connection Failed...")
 

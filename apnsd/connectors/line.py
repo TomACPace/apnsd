@@ -16,7 +16,7 @@
 #
 ###############################################################################
 
-import logging
+import logging, json
 
 class LineClient(object):
     """
@@ -41,6 +41,8 @@ class LineClient(object):
             newsocket.connect(("localhost", self.serverPort))
             self.servers[app]['socket'] = newsocket
 
+        if type(payload) not in (str, unicode):
+            payload = json.dumps(payload)
         line = str(app) + "," + devtoken + "," + payload.replace("\n", " ")
         result = self.servers[app]['socket'].send(line + "\r\n")
         logging.debug("Send message Result: " + str(result))

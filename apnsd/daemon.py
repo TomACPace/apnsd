@@ -44,7 +44,7 @@ class APNSProtocol(Protocol):
         Called when server has sent us some data.  For now we just 
         print out the data.
         """
-        logging.debug("APNS Data [(%d) bytes] Received: " % len(data))
+        logging.debug("APNS Data [(%d) bytes] Received: %s" % (len(data), str(map(ord, data))))
 
     def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
         msg = utils.formatMessage(deviceToken, payload, identifier, expiry)

@@ -29,6 +29,17 @@ class AppRegistrationError(Exception):
     def __str__(self):
         return "%s: %s" % (self.app_mesg, self.app_name)
 
+class ListenerRegistrationError(Exception):
+    """
+    Class of listener registration error.
+    """
+    def __init__(self, listener_name, listener_mesg = "Generic Listener Error"):
+        self.listener_name   = listener_name
+        self.listener_mesg   = listener_mesg
+
+    def __str__(self):
+        return "%s: %s" % (self.listener_mesg, self.listener_name)
+
 class ConfigFileError(Exception):
     """
     Error thrown when the config file is not found.

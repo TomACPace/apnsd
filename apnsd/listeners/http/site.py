@@ -59,8 +59,9 @@ class APNSSite(server.Site):
         # and which host/port we want to listen and so on...
         if interface:
             logging.debug("Listening on Http Protocol on %s:%d" % (interface, port))
-            # daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
         else:
             logging.debug("Listening on Http Protocol on :%d" % port)
-            # daemon.reactor.listenTCP(port, self, backlog = backlog)
+
+    def dataAvailableForClient(self, data, app_name):
+        print "AppName: ", str(map(ord, data))
 

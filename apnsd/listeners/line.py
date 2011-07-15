@@ -64,25 +64,23 @@ class LineProtocolFactory(Factory):
         interface   = kwds.get("interface", None)
         if interface:
             logging.info("Listening on Line Protocol on %s:%d" % (interface, port))
-            #daemon.reactor.listenTCP(port, self, backlog = backlog, interface = interface)
         else:
             logging.info("Listening on Line Protocol on :%d" % port)
-            #daemon.reactor.listenTCP(port, self, backlog = backlog)
 
     def startedConnecting(self, connector):
         logging.info("Started LineClient connection...")
 
     def buildProtocol(self, addr):
+        print "Self: ", dir(self)
         logging.info("Building LineProtocol Server %s:%u" % (addr.host, addr.port))
         return LineProtocol(self.apns_daemon)
 
     def clientConnectionLost(self, connector, reason):
-        logging.info("Printing Lost Connection...")
         logging.info("Lost Connection, Reason: " + str(reason))
-        logging.info("Done Printing Lost Connection...")
 
     def clientConnectionFailed(self, connector, reason):
-        logging.info("Printing Connection Failed...")
         logging.info("Failed Connection, Reason: " + str(reason))
-        logging.info("Done Printing Connection Failed...")
+
+    def dataAvailableForClient(self, data, app_name):
+        print "AppName: ", str(map(ord, data))
 

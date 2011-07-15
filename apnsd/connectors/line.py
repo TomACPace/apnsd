@@ -47,3 +47,4 @@ class LineClient(object):
         result = self.servers[app]['socket'].send(line + "\r\n")
         logging.debug("Send message Result: " + str(result))
         return 0, "Successful"
+

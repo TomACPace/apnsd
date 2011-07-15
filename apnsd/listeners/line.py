@@ -71,15 +71,14 @@ class LineProtocolFactory(Factory):
         logging.info("Started LineClient connection...")
 
     def buildProtocol(self, addr):
-        print "Self: ", dir(self)
         logging.info("Building LineProtocol Server %s:%u" % (addr.host, addr.port))
         return LineProtocol(self.apns_daemon)
 
     def clientConnectionLost(self, connector, reason):
-        logging.info("Lost Connection, Reason: " + str(reason))
+        logging.info("Connection to Client Lost, Reason: " + str(reason))
 
     def clientConnectionFailed(self, connector, reason):
-        logging.info("Failed Connection, Reason: " + str(reason))
+        logging.info("Connection to Client Failed, Reason: " + str(reason))
 
     def dataAvailableForClient(self, data, app_name):
         print "AppName: ", str(map(ord, data))

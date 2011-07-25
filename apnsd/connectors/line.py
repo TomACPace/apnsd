@@ -24,11 +24,11 @@ class LineClient(object):
     protocol server, instead of having to manage socket connections and
     data formatting manually.
     """
-    def __init__(self, app, host = "localhost", port = 90):
+    def __init__(self, app, port = 90, host = "localhost"):
         logging.debug("Creating line connector client...")
         self.app_id = app
-        self.serverHost = host
         self.serverPort = port
+        self.serverHost = host
         self.connSocket = None
 
     def sendLine(self, line):
@@ -38,7 +38,7 @@ class LineClient(object):
             self.connSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.connSocket.connect((self.serverHost, self.serverPort))
             # tell the server which app we are sending messages for
-            self.connSocket.send("connect: " + self.app_id)
+            self.connSocket.send("connect: " + self.app_id + "\r\n")
 
         # now send the line command
         return self.connSocket.send("line: " + line + "\r\n")
@@ -46,7 +46,7 @@ class LineClient(object):
     def sendMessage(self, devtoken, payload, identifier = None, expiry = None):
         if type(payload) not in (str, unicode):
             payload = json.dumps(payload)
-        line = "%s,%s,%s,%s,%s" % (app, devtoken, identifier, expiry, payload)
+        line = "%s,%s,%s,%s" % (devtoken, str(identifier), str(expiry), payload)
         result = self.sendLine(line)
         logging.debug("Send message Result: " + str(result))
         return 0, "Successful"

@@ -91,6 +91,7 @@ class APNSDaemon(threading.Thread):
 
     def dataReceived(self, data, app_name, *args, **kwargs):
         # tell all listeners that data was received for an app
+        logging.debug("Sending response to listeners...")
         for listener in self.listeners.values():
             listener.dataAvailableForClient(data, app_name)
 

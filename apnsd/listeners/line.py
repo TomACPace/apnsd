@@ -63,13 +63,13 @@ class LineProtocol(LineReceiver):
                 if coma3 <= 0:
                     return self.logUsage(line)
                 device_token    = line[ : coma1]
-                identifier      = line[coma1 + 1 : coma2]
-                expiry          = line[coma2 + 1 : coma3]
+                identifier      = line[coma1 + 1 : coma2].strip()
+                expiry          = line[coma2 + 1 : coma3].strip()
                 payload         = line[coma3 + 1 : ]
                 logging.debug("Received Line: " + line)
-                if identifier.lower() in ("none", "null", "nil"):
+                if identifier.lower() in ("none", "null", "nil",""):
                     identifier = None
-                if expiry.lower() in ("none", "null", "nil"):
+                if expiry.lower() in ("none", "null", "nil",""):
                     expiry = None
                 self.apns_daemon.sendMessage(self.curr_app_id, device_token, payload, identifier, expiry)
         else:

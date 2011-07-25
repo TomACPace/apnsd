@@ -18,6 +18,19 @@
 
 import constants
 
+APNS_NO_ERROR               = (0, "OK")
+APNS_PROCESSING_ERROR       = (1, "Processing Error")
+APNS_MISSING_DEVICE_TOKEN   = (2, "Missing Device Token")
+APNS_MISSING_TOPIC          = (3, "Missing Topic")
+APNS_MISSING_PAYLOAD        = (4, "Missing Payload")
+APNS_INVALID_TOKEN_SIZE     = (5, "Invalid Token Size")
+APNS_INVALID_TOPIC_SIZE     = (6, "Invalid Topic Size")
+APNS_INVALID_PAYLOAD_SIZE   = (7, "Invalid Payload Size")
+APNS_INVALID_TOKEN          = (8, "Invalid token")
+APNS_ERRORS = dict([APNS_NO_ERROR, APNS_PROCESSING_ERROR, APNS_MISSING_DEVICE_TOKEN,
+                    APNS_MISSING_TOPIC, APNS_MISSING_PAYLOAD, APNS_INVALID_TOKEN_SIZE,
+                    APNS_INVALID_TOPIC_SIZE, APNS_INVALID_PAYLOAD_SIZE, APNS_INVALID_TOKEN])
+
 class AppRegistrationError(Exception):
     """
     Class of application registration error.

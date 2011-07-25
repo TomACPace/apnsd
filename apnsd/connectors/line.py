@@ -24,27 +24,30 @@ class LineClient(object):
     protocol server, instead of having to manage socket connections and
     data formatting manually.
     """
-    def __init__(self, port = 90):
+    def __init__(self, app, host = "localhost", port = 90):
         logging.debug("Creating line connector client...")
+        self.app_id = app
+        self.serverHost = host
         self.serverPort = port
-        self.servers = {}
+        self.connSocket = None
 
-    def sendMessage(self, app, devtoken, payload, identifier = None, expiry = None):
-        if app not in self.servers:
-            logging.debug("Adding app to list: " + app)
-            self.servers[app] = {'socket': None}
-
-        if not self.servers[app]['socket']:
+    def sendLine(self, line):
+        if not self.connSocket:
             import socket
-            logging.debug("Connecting to daemon for app: %s on port: %d" % (app, self.serverPort))
-            newsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            newsocket.connect(("localhost", self.serverPort))
-            self.servers[app]['socket'] = newsocket
+            logging.debug("Connecting to daemon at: %s:%d" % (self.serverHost, self.serverPort))
+            self.connSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.connSocket.connect((self.serverHost, self.serverPort))
+            # tell the server which app we are sending messages for
+            self.connSocket.send("connect: " + self.app_id)
 
+        # now send the line command
+        return self.connSocket.send("line: " + line + "\r\n")
+
+    def sendMessage(self, devtoken, payload, identifier = None, expiry = None):
         if type(payload) not in (str, unicode):
             payload = json.dumps(payload)
         line = "%s,%s,%s,%s,%s" % (app, devtoken, identifier, expiry, payload)
-        result = self.servers[app]['socket'].send(line + "\r\n")
+        result = self.sendLine(line)
         logging.debug("Send message Result: " + str(result))
         return 0, "Successful"
 

@@ -1,13 +1,14 @@
 
 import os, logging
 from twisted.application import internet
+import errors
 
 def read_listeners_in_config(config_file, apns_daemon, service_parent):
     """
     Reads the config file and return all the listeners in it one by one.
     """
     if not os.path.isfile(config_file):
-        raise errors.ConfigFileError(config_file, "File not found")
+        raise errors.ConfigFileError(config_file, "File not found: %s" % config_file)
 
     configs = eval(open(config_file).read())
     if 'listeners' not in configs:

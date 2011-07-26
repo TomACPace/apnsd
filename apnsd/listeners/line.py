@@ -52,7 +52,7 @@ class LineProtocol(LineReceiver):
             self.curr_app_id, self.curr_app_mode = [l.strip() for l in line.split(":")]
             logging.debug("Current App changed to '%s:%s'" % (self.curr_app_mode, self.curr_app_id))
         elif line.startswith("line:"):
-            line = line[5:]
+            line = line[5:].strip()
             if not self.curr_app_id:
                 logging.warning("App ID has not yet been set.  Expecting 'connect' command first")
             else:

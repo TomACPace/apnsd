@@ -63,17 +63,31 @@ class APNSDaemon(threading.Thread):
             del self.conn_factories[app_name]
 
     def registerApp(self,
-                    app_name, certificate_file, privatekey_file,
-                    apns_host       = constants.DEFAULT_APNS_DEV_HOST,
-                    apns_port       = constants.DEFAULT_APNS_DEV_PORT,
-                    feedback_host   = constants.DEFAULT_FEEDBACK_DEV_HOST,
-                    feedback_port   = constants.DEFAULT_FEEDBACK_DEV_PORT):
+                    app_name,       app_mode, # "rel" or "dev"
+                    certificate_file, privatekey_file,
+                    apns_host       = None, apns_port       = None,
+                    feedback_host   = None, feedback_port   = None):
         """
         Initialises a new app's connection with the APNS server so when
         time comes for requests it can be used.
         """
-        if app_name in self.conn_factories:
-            raise errors.AppRegistrationError(app_name, "Application already registered")
+
+        apns_host = apns_host or    \
+                    (app_mode == "dev" and constants.DEFAULT_APNS_DEV_HOST) or  \
+                    (app_mode == "rel" and constants.DEFAULT_APNS_PROD_HOST)
+        apns_port = apns_port or    \
+                    (app_mode == "dev" and constants.DEFAULT_APNS_DEV_PORT) or  \
+                    (app_mode == "rel" and constants.DEFAULT_APNS_PROD_PORT)
+        feedback_host = feedback_host or    \
+                    (app_mode == "dev" and constants.DEFAULT_FEEDBACK_DEV_HOST) or  \
+                    (app_mode == "rel" and constants.DEFAULT_FEEDBACK_PROD_HOST)
+        feedback_port = feedback_port or    \
+                    (app_mode == "dev" and constants.DEFAULT_FEEDBACK_DEV_PORT) or  \
+                    (app_mode == "rel" and constants.DEFAULT_FEEDBACK_PROD_PORT)
+
+        real_app_name = app_mode + ":" + app_name
+        if real_app_name in self.conn_factories:
+            raise errors.AppRegistrationError(real_app_name, "Application already registered")
 
         if certificate_file:
             certificate_file = os.path.abspath(certificate_file)
@@ -81,31 +95,31 @@ class APNSDaemon(threading.Thread):
         if privatekey_file:
             privatekey_file = os.path.abspath(privatekey_file)
 
-        logging.info("Registering Application: %s..." % (app_name))
+        logging.info("Registering Application: %s..." % (real_app_name))
 
-        self.conn_factories[app_name] = APNSFactory(app_name, self.reactor,
-                                                    apns_host, apns_port,
-                                                    feedback_host, feedback_port,
-                                                    certificate_file, privatekey_file,
-                                                    self, app_name)
+        self.conn_factories[real_app_name] = APNSFactory(app_name, app_mode, self.reactor,
+                                                         apns_host, apns_port,
+                                                         feedback_host, feedback_port,
+                                                         certificate_file, privatekey_file, self)
 
-    def dataReceived(self, data, app_name, *args, **kwargs):
+    def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
         # tell all listeners that data was received for an app
-        logging.debug("Sending response to listeners...")
+        logging.debug("%s:%s -> Sending response to listeners..." % (app_mode, app_name))
         for listener in self.listeners.values():
-            listener.dataAvailableForClient(data, app_name)
+            listener.dataAvailableForClient(data, app_name, app_mode)
 
-    def sendMessage(self, app, device_token, payload, identifier = None, expiry = None):
+    def sendMessage(self, app_name, app_mode, device_token, payload, identifier = None, expiry = None):
         """ 
         Sends a message/payload from a given app to a target device.
         """
-        if app not in self.conn_factories:
-            raise errors.AppRegistrationError(app, "Application not registered")
+        real_app_name = app_mode + ":" + app_name
+        if real_app_name not in self.conn_factories:
+            raise errors.AppRegistrationError(app_name, "Application not registered")
         
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()
 
-        self.conn_factories[app].sendMessage(device_token, payload, identifier, expiry)
+        self.conn_factories[real_app_name].sendMessage(device_token, payload, identifier, expiry)
 
     def run(self):
         # start the reactor
@@ -117,7 +131,7 @@ class APNSDaemon(threading.Thread):
         self.reactor.run()
 
 class APNSFactory(ReconnectingClientFactory):
-    def __init__(self, app_name, reactor,
+    def __init__(self, app_name, app_mode, reactor,
                  apns_host, apns_port,
                  feedback_host, feedback_port,
                  certificate_file, privatekey_file,
@@ -132,6 +146,7 @@ class APNSFactory(ReconnectingClientFactory):
         self.messageQueue = Queue.Queue()
 
         self.app_name = app_name
+        self.app_mode = app_mode
         self.reactor = reactor
         self.apns_host = apns_host
         self.apns_port = apns_port
@@ -145,7 +160,7 @@ class APNSFactory(ReconnectingClientFactory):
         self.connListenerArgs = connListenerArgs
         self.connListenerKWArgs = connListenerKWArgs
 
-        logging.info("Connecting to APNS Server, App: %s" % app_name)
+        logging.info("Connecting to APNS Server, App: %s:%s" % (app_mode, app_name))
         self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
 
     def closeConnection(self):
@@ -154,28 +169,31 @@ class APNSFactory(ReconnectingClientFactory):
             self.currProtocol = null;
 
     def clientConnectionLost(self, connector, reason):
-        logging.info("Lost connection, Reason: " + str(reason))
+        logging.info("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.app_name, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        logging.info("Connection Failed, Reason: " + str(reason))
+        logging.info("%s:%s -> Connection Failed, Reason: " % (self.app_mode, self.app_name, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
     def startedConnecting(self, connector):
-        logging.info("Started connecting to APNS connector....")
+        logging.info("%s:%s -> Started connecting to APNS connector..." % (self.app_mode, self.app_name))
         self.resetDelay()
 
     def buildProtocol(self, addr):
-        logging.info("Building APNS Protocol to APNS Server %s:%u..." % (addr.host, addr.port))
+        logging.info("%s:%s -> Building APNS Protocol to APNS Server %s:%u..." %
+                                (self.app_mode, self.app_name, addr.host, addr.port))
         if not (self.currProtocol and self.currProtocol.connected):
-            self.currProtocol = APNSProtocol(self.messageQueue,
+            self.currProtocol = APNSProtocol(self.app_name, self.app_mode,
+                                             self.messageQueue,
                                              self.connListener,
                                              self.connListenerArgs,
                                              self.connListenerKWArgs)
         else:
-            logging.warning("Protocol already exists, returning existing protocol...")
+            logging.info("%s:%s -> Protocol already exists, returning existing protocol..." %
+                                                                (self.app_mode, self.app_name))
         return self.currProtocol
 
     def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
@@ -184,12 +202,16 @@ class APNSFactory(ReconnectingClientFactory):
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.warning("Protocol not yet created.  Messaged queued...")
+            logging.warning("%s:%s -> Protocol not yet created.  Message queued..." %
+                                    (self.app_mode, self.app_name))
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSProtocol(Protocol):
-    def __init__(self, messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
+    def __init__(self, app_name, app_mode, 
+                 messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
         """ Initialises the protocol with the message queue. """
+        self.app_name = app_name
+        self.app_mode = app_mode
         self.messageQueue = messageQueue
         self.connListener = connListener
         self.connListenerArgs = connListenerArgs
@@ -210,19 +232,21 @@ class APNSProtocol(Protocol):
             self.sendMessage(deviceToken, payload, identifier, expiry)
 
     def connectionLost(self, reason):
-        logging.debug("Connection to APNS Lost.  Reason: " + str(reason))
+        logging.info("%s:%s -> Connection to APNS Lost: %s" % (self.app_mode, self.app_name, str(reason)))
 
     def dataReceived(self, data):
         """
         Called when server has sent us some data.  For now we just 
         print out the data.
         """
-        logging.debug("APNS Data [(%d) bytes] Received: %s" % (len(data), str(map(ord, data))))
+        logging.debug("%s:%s -> APNS Data [(%d) bytes] Received: %s" %
+                    (self.app_mode, self.app_name, len(data), str(map(ord, data))))
         if self.connListener:
-            self.connListener.dataReceived(data, *self.connListenerArgs, **self.connListenerKWArgs)
+            self.connListener.dataReceived(data, self.app_name, self.app_mode,
+                                           *self.connListenerArgs, **self.connListenerKWArgs)
 
     def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
         msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
         self.transport.write(msg)
-        logging.debug("Sent Message: %s" % str(map(ord, msg)))
+        logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.app_name, str(map(ord, msg))))
 

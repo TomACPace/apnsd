@@ -62,11 +62,11 @@ def read_apps_in_config(config_file, apns_daemon):
         rel_cert_file   = app.get('rel_certificate_file', None)
         rel_pkey_file   = app.get("rel_privatekey_file", None)
         if dev_cert_file and dev_pkey_file:
+            apns_daemon.registerApp(app_id, "dev", dev_cert_file, dev_pkey_file)
+        else:
             logging.warning("Dev certificate and private key files not found...")
-        else:
-            apns_daemon.registerApp("dev:" + app_id, dev_cert_file, dev_pkey_file)
         if rel_cert_file and rel_pkey_file:
-            logging.warning("Release certificate and private key files not found...")
+            apns_daemon.registerApp(app_id, "rel", rel_cert_file, rel_pkey_file)
         else:
-            apns_daemon.registerApp("rel:" + app_id, rel_cert_file, rel_pkey_file)
+            logging.warning("Release certificate and private key files not found...")
 

@@ -29,11 +29,12 @@ class LineProtocol(LineReceiver):
     def __init__(self, daemon):
         self.apns_daemon    = daemon
         self.curr_app_id    = None
+        self.curr_app_mode  = None
 
     def logUsage(self, line):
         logging.debug("Invalid line: " + line)
         logging.debug("Usage: ")
-        logging.debug("     connect: <app_id>")
+        logging.debug("     connect: <app_id>:<app_mode = 'rel' or 'dev'>")
         logging.debug("     line: <device token>,<identifier_or_None>,<expiry_or_None>,<payload>")
 
     def lineReceived(self, line):
@@ -45,15 +46,13 @@ class LineProtocol(LineReceiver):
         #                   now now onwards.
         #   "line"      -   Sends a line of data to apple and has the format: 
         #                       deviceToken,identifier,expiry,payload
-        colonPos = line.find(":")
-        if colonPos < 0:
-            return self.logUsage(line)
-
-        command, payload = line[:colonPos].strip().lower(), line[colonPos + 1:].strip()
-        if command == "connect":
-            self.curr_app_id = payload
-            logging.debug("Current App changed to '%s'" % self.curr_app_id)
-        elif command == "line":
+        line = line.strip()
+        if line.startswith("connect:"):
+            line = line[8:]
+            self.curr_app_id, self.curr_app_mode = [l.strip() for l in line.split(":")]
+            logging.debug("Current App changed to '%s:%s'" % (self.curr_app_mode, self.curr_app_id))
+        elif line.startswith("line:"):
+            line = line[5:]
             if not self.curr_app_id:
                 logging.warning("App ID has not yet been set.  Expecting 'connect' command first")
             else:
@@ -71,7 +70,8 @@ class LineProtocol(LineReceiver):
                     identifier = None
                 if expiry.lower() in ("none", "null", "nil",""):
                     expiry = None
-                self.apns_daemon.sendMessage(self.curr_app_id, device_token, payload, identifier, expiry)
+                self.apns_daemon.sendMessage(self.curr_app_id, self.curr_app_mode,
+                                             device_token, payload, identifier, expiry)
         else:
             return self.logUsage(line)
 
@@ -102,9 +102,9 @@ class LineProtocolFactory(Factory):
     def clientConnectionFailed(self, connector, reason):
         logging.info("Connection to Client Failed, Reason: " + str(reason))
 
-    def dataAvailableForClient(self, data, app_name):
+    def dataAvailableForClient(self, data, app_name, app_mode):
         """
         Called by the daemon when data from Apple has arrived for clients.
         """
-        print "AppName: ", str(map(ord, data))
+        print "%s:%s - Data Received: " % (app_mode, app_name), str(map(ord, data))
 

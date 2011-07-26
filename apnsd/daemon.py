@@ -174,7 +174,7 @@ class APNSFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        logging.info("%s:%s -> Connection Failed, Reason: " % (self.app_mode, self.app_name, str(reason)))
+        logging.info("%s:%s -> Connection Failed, Reason: %s" % (self.app_mode, self.app_name, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 

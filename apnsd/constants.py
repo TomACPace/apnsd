@@ -28,3 +28,6 @@ DEFAULT_FEEDBACK_PROD_HOST  = "feedback.push.apple.com"
 DEFAULT_FEEDBACK_DEV_HOST   = "feedback.sandbox.push.apple.com"
 DEFAULT_FEEDBACK_PROD_PORT  = 2196
 DEFAULT_FEEDBACK_DEV_PORT   = 2196
+
+DEFAULT_C2DM_LOGIN_URL      = "https://www.google.com/accounts/ClientLogin"
+

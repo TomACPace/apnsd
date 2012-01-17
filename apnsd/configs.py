@@ -54,19 +54,21 @@ def read_apps_in_config(config_file, apns_daemon):
         raise errors.ConfigFileError(config_file, "'apps' section not found")
         
     apps = configs['apps']
-    for app_key in apps:
-        app             = apps[app_key]
-        app_id          = app['app_id']
-        dev_cert_file   = app.get('dev_certificate_file', None)
-        dev_pkey_file   = app.get("dev_privatekey_file", None)
-        rel_cert_file   = app.get('rel_certificate_file', None)
-        rel_pkey_file   = app.get("rel_privatekey_file", None)
-        if dev_cert_file and dev_pkey_file:
-            apns_daemon.registerApp(app_id, "dev", dev_cert_file, dev_pkey_file)
-        else:
-            logging.warning("Dev certificate and private key files not found...")
-        if rel_cert_file and rel_pkey_file:
-            apns_daemon.registerApp(app_id, "rel", rel_cert_file, rel_pkey_file)
-        else:
-            logging.warning("Release certificate and private key files not found...")
+    for app_name in apps:
+        app = apps[app_name]
+        for app_mode in app:
+            app_data = app[app_mode]
+            app_class = app_data["app_class"]
+            parts = app_class.split(".")
+            if len(parts) > 1:
+                app_pkg      = ".".join(parts[:-1])
+                app_module   = __import__(app_pkg, {}, {}, [''])
+                app_class    = getattr(app_module, parts[-1])
+            else:
+                app_class    = eval(parts[-1])
+
+            logging.debug("Creating App Factory: " + str(app_class))
+            app_factory = app_class(apns_daemon.reactor, app_name, app_mode,
+                                    apns_daemon, **app_data)
+            apns_daemon.registerApp(app_name, app_mode, app_factory)
 

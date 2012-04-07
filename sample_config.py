@@ -39,15 +39,25 @@
     },
 
     'apps': {
-        'app1': {
-            'app_id':           "App1 ID",
-            'certificate_file': "path_to_certificate_file_1.pem",
-            'privatekey_file':  "path_to_privatekey_file_1.pem"
-        },
-        'app2': {
-            'app_id':           "App2 ID",
-            'certificate_file': "path_to_certificate_file_2.pem",
-            'privatekey_file':  "path_to_privatekey_file_2.pem"
+        'AppName1': {
+            'apns_dev': {
+                'app_class':        "apnsd.daemon.APNSFactory",
+                'app_id':           "App1 ID",
+                'certificate_file': "path_to_dev_certificate_file_1.pem",
+                'privatekey_file':  "path_to_dev_privatekey_file_1.pem"
+            },
+            'apns_rel': {
+                'app_class':        "apnsd.daemon.APNSFactory",
+                'app_id':           "App1 ID",
+                'certificate_file': "path_to_release_certificate_file_1.pem",
+                'privatekey_file':  "path_to_release_privatekey_file_1.pem"
+            },
+            # Optional
+            # 'c2dm': {
+            #    'app_class':        'apnsd.daemon.C2DMFactory',
+            #    'email':            "your gmail id for sending C2DM messages as",
+            #    'password':         "your gmail password for sending C2DM messages as",
+            #}
         },
     }
 }

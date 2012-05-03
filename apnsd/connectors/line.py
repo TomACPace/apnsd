@@ -49,6 +49,13 @@ class LineClient(object):
             payload = json.dumps(payload)
         line = "%s,%s,%s,%s" % (devtoken, str(identifier), str(expiry), payload)
         result = self.sendLine(line)
+        logging.debug("=" * 80)
         logging.debug("Send message Result: " + str(result))
+        if identifier is not None:
+            # since an identifier was specified we must be seding an
+            # extended notification. So read a response from the server
+            # response regarding the status of the notification
+            # Response is binary of the format: <count><payload>
+            pass
         return 0, "Successful"
 

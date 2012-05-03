@@ -104,7 +104,10 @@ class LineProtocolFactory(Factory):
 
     def dataAvailableForClient(self, data, app_name, app_mode):
         """
-        Called by the daemon when data from Apple has arrived for clients.
+        Called by the daemon when data has arrived for clients.
         """
-        print "%s:%s - Data Received: " % (app_mode, app_name), str(map(ord, data))
+        params = (app_mode, app_name, str(map(ord, data)))
+        logging.debug("%s:%s - Data Received: %s" % params)
+        # msg = ":".join([app_name, app_mode, json.dumps(map(ord, data))])
+        # self.transport.write(msg)
 

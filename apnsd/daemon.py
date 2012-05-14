@@ -143,8 +143,8 @@ class APNSFactory(ReconnectingClientFactory):
                             (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_PORT) or  \
                             (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_PORT)
 
-        self.certificate_file = kwargs["certificate_file"]
-        self.privatekey_file = kwargs["privatekey_file"]
+        self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
+        self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
         self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
 
         logging.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))

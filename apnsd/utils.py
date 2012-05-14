@@ -1,5 +1,5 @@
 
-import struct
+import struct, os, sys, re
 
 # Notification Message Format 1:
 # <1 byte command> <2 bytes token length> <token> <2 bytes payload length> <payload>
@@ -25,4 +25,10 @@ def formatMessage(deviceToken, payload, identifier = None, expiry = None):
     else:
         fmt = CMD_FORMAT_1 % payload_length
         return '\x01' + struct.pack(fmt, long(identifier), long(expiry), tokenLength, deviceToken, payload_length, payload)
+
+def resolve_env_vars(input):
+    """
+    Resolves any environment variables in a given input string.
+    """
+    return os.path.expandvars(input)
 

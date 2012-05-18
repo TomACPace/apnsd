@@ -1,7 +1,7 @@
 ###############################################################################
 #
 # Copyright 2009, Sri Panyam
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -26,7 +26,7 @@ import constants, errors, utils
 ####################################################################################################
 
 class APNSDaemon(threading.Thread):
-    """ 
+    """
     Maintains a list of connections to the Apple and also serves to
     maintain the credentials of each of the Apps registered in our list.
     """
@@ -85,13 +85,13 @@ class APNSDaemon(threading.Thread):
             listener.dataAvailableForClient(data, app_name, app_mode)
 
     def sendMessage(self, app_name, app_mode, device_token, payload, identifier = None, expiry = None):
-        """ 
+        """
         Sends a message/payload from a given app to a target device.
         """
         real_app_name = app_mode + ":" + app_name
         if real_app_name not in self.conn_factories:
             raise errors.AppRegistrationError(app_name, "Application not registered")
-        
+
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()
 
@@ -102,12 +102,12 @@ class APNSDaemon(threading.Thread):
         # note we are not connecting to APN server here.  We will do this
         # the first time a notification needs to be sent.  But instead we
         # listen to connection on the local network as we are the
-        # standalone daemon.  
+        # standalone daemon.
         logging.info("APNS Daemon Started...")
         self.reactor.run()
 
 class APNSFactory(ReconnectingClientFactory):
-    def __init__(self, reactor, app_name, app_mode, 
+    def __init__(self, reactor, app_name, app_mode,
                  connListener = None,
                  connListenerArgs = [],
                  connListenerKWArgs = {},
@@ -194,7 +194,7 @@ class APNSFactory(ReconnectingClientFactory):
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSProtocol(Protocol):
-    def __init__(self, app_id, app_mode, 
+    def __init__(self, app_id, app_mode,
                  messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
         """ Initialises the protocol with the message queue. """
         self.app_id = app_id
@@ -223,7 +223,7 @@ class APNSProtocol(Protocol):
 
     def dataReceived(self, data):
         """
-        Called when server has sent us some data.  For now we just 
+        Called when server has sent us some data.  For now we just
         print out the data.
         """
         logging.debug("%s:%s -> APNS Data [(%d) bytes] Received: %s" %
@@ -245,7 +245,7 @@ from   twisted.web._newclient       import Request
 from   twisted.web.client           import _parse
 
 class C2DMFactory(ReconnectingClientFactory):
-    def __init__(self, reactor, app_name, app_mode, 
+    def __init__(self, reactor, app_name, app_mode,
                  connListener = None,
                  connListenerArgs = [],
                  connListenerKWArgs = {},
@@ -317,7 +317,7 @@ class C2DMFactory(ReconnectingClientFactory):
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class C2DMProtocol(Protocol):
-    def __init__(self, email, password, login_url, app_mode, 
+    def __init__(self, email, password, login_url, app_mode,
                  messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
         """ Initialises the protocol with the message queue. """
         self.email = email
@@ -348,7 +348,7 @@ class C2DMProtocol(Protocol):
 
     def dataReceived(self, data):
         """
-        Called when server has sent us some data.  For now we just 
+        Called when server has sent us some data.  For now we just
         print out the data.
         """
         logging.debug("%s:%s -> C2DM Data [(%d) bytes] Received: %s" %

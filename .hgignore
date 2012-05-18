@@ -11,6 +11,7 @@ syntax: glob
 *.log
 tags*
 twisted/plugins/dropin.cache
+build/*
 test/iphoneapp/build/*
 test/iphoneapp/Classes/._*.h
 test/iphoneapp/Classes/._*.m

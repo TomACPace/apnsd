@@ -22,7 +22,7 @@ import logging, json
 # worked, but I'm not sure how, where it would work in general
 # eg if you were importing this module from Django, would the import below
 # work?
-from feedback import APNSFeedback
+from apnsd.feedback import APNSFeedback
 
 class LineClient(object):
     """

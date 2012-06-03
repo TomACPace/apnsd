@@ -1,7 +1,8 @@
+
 ###############################################################################
 #
 # Copyright 2009, Sri Panyam
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,8 +17,8 @@
 #
 ###############################################################################
 
-import threading, Queue, optparse, os, logging
-from twisted.internet.protocol import ReconnectingClientFactory, Protocol
+import threading, Queue, optparse, os, logging, copy
+from twisted.internet.protocol import ReconnectingClientFactory, ClientFactory, Protocol, ClientCreator
 from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
 import constants, errors, utils
 
@@ -26,7 +27,7 @@ import constants, errors, utils
 ####################################################################################################
 
 class APNSDaemon(threading.Thread):
-    """ 
+    """
     Maintains a list of connections to the Apple and also serves to
     maintain the credentials of each of the Apps registered in our list.
     """
@@ -36,6 +37,7 @@ class APNSDaemon(threading.Thread):
         """
         self.reactor = reactor
         self.conn_factories = {}
+        self.feedback_services = {}
         self.listeners = {}
 
     def unregisterListener(self, listener_name):
@@ -63,20 +65,35 @@ class APNSDaemon(threading.Thread):
         Unregisters an app from the list of apps.
         """
         if app_name in self.conn_factories:
-            self.conn_factories[app_name].closeConnection()
-            del self.conn_factories[app_name]
+            factory[app_name].closeConnection()
+            del factory[app_name]
 
-    def registerApp(self, app_name, app_mode, app_factory):
+        if app_name in self.feedback_services:
+            del self.feedback_services[app_name]
+
+
+    def registerApp(self, app_name, app_mode, app_factory, feedbackService):
         """
         Initialises a new app's connection with the APNS server so when
         time comes for requests it can be used.
         """
-        real_app_name = app_mode + ":" + app_name
-        if real_app_name in self.conn_factories:
-            raise errors.AppRegistrationError(real_app_name, "Application already registered")
+        real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
 
-        logging.info("Registering Application: %s..." % (real_app_name))
+        if real_app_name in self.conn_factories:
+            raise errors.AppRegistrationError(real_app_name, "Application already registered for APNS")
+
+        logging.info("Registering Application for APNS: %s..."%real_app_name)
         self.conn_factories[real_app_name] = app_factory
+
+        if feedbackService:
+            if real_app_name in self.feedback_services:
+                raise errors.AppRegistrationError(real_app_name, "Application already registered for feedback service")
+
+            logging.info("Registering Application for feedback service: %s..." % (real_app_name))
+            self.feedback_services[real_app_name] = feedbackService
+
+
+
 
     def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
         # tell all listeners that data was received for an app
@@ -84,34 +101,50 @@ class APNSDaemon(threading.Thread):
         for listener in self.listeners.values():
             listener.dataAvailableForClient(data, app_name, app_mode)
 
+    @staticmethod
+    def _getRealAppName(app_mode, app_name):
+        return app_mode + ":" + app_name
+
     def sendMessage(self, app_name, app_mode, device_token, payload, identifier = None, expiry = None):
-        """ 
+        """
         Sends a message/payload from a given app to a target device.
         """
-        real_app_name = app_mode + ":" + app_name
+        real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
         if real_app_name not in self.conn_factories:
-            raise errors.AppRegistrationError(app_name, "Application not registered")
-        
+            raise errors.AppRegistrationError(app_name, "Application not registered for APNS")
+
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()
 
         self.conn_factories[real_app_name].sendMessage(device_token, payload, identifier, expiry)
+
+    def getFeedback(self, app_name, app_mode, deferred):
+        """
+        Retrieves feedback
+        """
+        real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
+        if real_app_name not in self.feedback_services:
+            raise errors.AppRegistrationError(app_name, "Application not registered for feedback")
+
+        self.feedback_services[real_app_name].getFeedback(deferred)
 
     def run(self):
         # start the reactor
         # note we are not connecting to APN server here.  We will do this
         # the first time a notification needs to be sent.  But instead we
         # listen to connection on the local network as we are the
-        # standalone daemon.  
+        # standalone daemon.
         logging.info("APNS Daemon Started...")
         self.reactor.run()
 
 class APNSFactory(ReconnectingClientFactory):
-    def __init__(self, reactor, app_name, app_mode, 
+    def __init__(self, reactor, app_name, app_mode,
+                 # NB 'connListener': currently this is the daemon
                  connListener = None,
                  connListenerArgs = [],
                  connListenerKWArgs = {},
                  **kwargs):
+
         self.initialDelay = kwargs.get("initialDelay", 3)
         self.factor = kwargs.get("factor", 1)
         self.jitter = kwargs.get("jitter", .10)
@@ -127,8 +160,6 @@ class APNSFactory(ReconnectingClientFactory):
         self.app_id = kwargs["app_id"]
         self.apns_host = kwargs.get("apns_host")
         self.apns_port = kwargs.get("apns_port")
-        self.feedback_host = kwargs.get("feedback_host")
-        self.feedback_port = kwargs.get("feedback_port")
         # see if we need defaults
         self.apns_host = self.apns_host or    \
                         (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_HOST) or  \
@@ -136,12 +167,6 @@ class APNSFactory(ReconnectingClientFactory):
         self.apns_port = self.apns_port or    \
                     (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_PORT) or  \
                     (self.app_mode == "apns_rel" and constants.DEFAULT_APNS_PROD_PORT)
-        self.feedback_host = self.feedback_host or    \
-                            (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_HOST) or  \
-                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_HOST)
-        self.feedback_port = self.feedback_port or    \
-                            (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_PORT) or  \
-                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_PORT)
 
         self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
         self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
@@ -196,7 +221,7 @@ class APNSFactory(ReconnectingClientFactory):
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSProtocol(Protocol):
-    def __init__(self, app_id, app_mode, 
+    def __init__(self, app_id, app_mode,
                  messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
         """ Initialises the protocol with the message queue. """
         self.app_id = app_id
@@ -225,7 +250,7 @@ class APNSProtocol(Protocol):
 
     def dataReceived(self, data):
         """
-        Called when server has sent us some data.  For now we just 
+        Called when server has sent us some data.  For now we just
         print out the data.
         """
         logging.debug("%s:%s -> APNS Data [(%d) bytes] Received: %s" %
@@ -239,6 +264,57 @@ class APNSProtocol(Protocol):
         self.transport.write(msg)
         logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.app_id, str(map(ord, msg))))
 
+class FeedbackProtocol(Protocol):
+
+    data = ''
+
+    def __init__(self, deferredResult):
+        self.deferredResult = deferredResult
+
+    def dataReceived(self, data):
+        """
+        Called when server has sent us some data.  For now we just
+        print out the data.
+        """
+        logging.debug("Feedback Data [(%d) bytes] Received"%(len(data)))
+        self.data += data
+
+    def connectionLost(self, reason):
+        buff = copy.deepcopy(self.data)
+        items = utils.getFeedbackItems(buff)
+        self.deferredResult.callback(items)
+        self.deferredResult = None
+
+
+class FeedbackApplication:
+
+    def __init__(self, reactor, app_name, app_mode, **kwargs):
+        self.reactor = reactor
+        self.app_name = app_name
+        self.app_mode = app_mode
+        self.app_id = kwargs["app_id"]
+        self.feedback_host = kwargs.get("feedback_host")
+        self.feedback_port = kwargs.get("feedback_port")
+
+        # see if we need defaults
+        self.feedback_host = self.feedback_host or    \
+                            (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_HOST) or  \
+                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_HOST)
+        self.feedback_port = self.feedback_port or    \
+                            (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_PORT) or  \
+                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_PORT)
+
+        self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
+        self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
+        self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
+
+    def getFeedback(self, deferred):
+        logging.info("Connecting to Feedback Server, App: %s:%s" % (self.app_mode, self.app_id))
+        cc = ClientCreator(self.reactor, FeedbackProtocol, deferred)
+        # SRI: not sure what the client_context_factory is for.. is it ok to reuse like this?
+        cc.connectSSL(self.feedback_host, self.feedback_port, self.client_context_factory)
+
+
 ####################################################################################################
 ##                                      C2DM Connectivity
 ####################################################################################################
@@ -247,7 +323,7 @@ from   twisted.web._newclient       import Request
 from   twisted.web.client           import _parse
 
 class C2DMFactory(ReconnectingClientFactory):
-    def __init__(self, reactor, app_name, app_mode, 
+    def __init__(self, reactor, app_name, app_mode,
                  connListener = None,
                  connListenerArgs = [],
                  connListenerKWArgs = {},
@@ -319,7 +395,7 @@ class C2DMFactory(ReconnectingClientFactory):
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class C2DMProtocol(Protocol):
-    def __init__(self, email, password, login_url, app_mode, 
+    def __init__(self, email, password, login_url, app_mode,
                  messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
         """ Initialises the protocol with the message queue. """
         self.email = email
@@ -350,7 +426,7 @@ class C2DMProtocol(Protocol):
 
     def dataReceived(self, data):
         """
-        Called when server has sent us some data.  For now we just 
+        Called when server has sent us some data.  For now we just
         print out the data.
         """
         logging.debug("%s:%s -> C2DM Data [(%d) bytes] Received: %s" %
@@ -363,3 +439,4 @@ class C2DMProtocol(Protocol):
         msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
         self.transport.write(msg)
         logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.email, str(map(ord, msg))))
+

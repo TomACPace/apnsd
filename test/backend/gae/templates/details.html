@@ -1,0 +1,36 @@
+
+<html>
+<head>
+    <title>Device Details</title>
+</head>
+<body style="background-color: #a0b0c0">
+    <center>
+    <h1>Device Details</h1>
+    <table border = 1>
+        <tr><td>Device ID: </td><td>{{device.device_id}}</td></tr>
+        <tr><td>Device Token: </td><td>{{device.device_token}}</td></tr>
+        <tr><td>Created: </td><td>{{device.created}}</td></tr>
+        <tr><td>Status: </td><td>{{device.status}}</td></tr>
+    </table>
+    <p>
+    <form method="POST" action="/devices/{{device.device_id}}/notify/">
+        <table>
+        <tr>
+            <td>Badge:</td><td><input style="width:100%" name = "badge" id = "badge" value=""/></td>
+        </tr>
+        <tr>
+            <td>Alert:</td>
+            <td width=300><input style="width:100%" name = "payload" id = "payload" value="Enter notification here."/></td>
+        </tr>
+        </table>
+        <p>
+        <input type="submit" value = "Notify"/>
+        <p>
+        {{ notif_result }}
+    </form>
+
+    <div><h3>
+        <a href="/devices/">Devices</a>
+    </h3></div>
+</body>
+</html>

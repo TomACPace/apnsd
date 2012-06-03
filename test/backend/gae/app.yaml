@@ -1,0 +1,27 @@
+application: apnstest
+version: 1
+runtime: python
+api_version: 1
+
+skip_files:
+- .*\.swp$
+- .*\.swc.cache$
+- .*\.swf.cache$
+- .*\.pyc$
+- .*\.pyo$
+- tags.*
+- .*\.hg/.*
+- static/images/.*
+- apnsd/test/.*
+
+handlers:
+
+- url: /static
+  static_dir: static
+
+- url: /media
+  static_dir: _generated_media
+
+- url: /.*
+  script: main.py
+

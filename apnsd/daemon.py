@@ -145,6 +145,8 @@ class APNSFactory(ReconnectingClientFactory):
 
         self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
         self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
+        logging.info("Certificate File: %s" % self.certificate_file)
+        logging.info("PrivateKey File: %s" % self.privatekey_file)
         self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
 
         logging.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))

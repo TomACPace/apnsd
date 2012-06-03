@@ -18,7 +18,10 @@
 
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import Factory, Protocol
+from twisted.internet import defer
 import logging
+
+from ..feedback import APNSFeedback
 
 class LineProtocol(LineReceiver):
     """
@@ -36,6 +39,23 @@ class LineProtocol(LineReceiver):
         logging.debug("Usage: ")
         logging.debug("     connect: <app_id>:<app_mode = 'rel' or 'dev'>")
         logging.debug("     line: <device token>,<identifier_or_None>,<expiry_or_None>,<payload>")
+        logging.debug("     feedback:")
+
+    # SRI: there are problems around extending this if we require different classes
+    # for different feedback responses
+    # How do you know what type you received?
+    # How do you serialise (what function do you call)? At the moment it's hardcoded
+    # How does the receiving side know which class it is (although the receiving side
+    # presumably knows what service, eg: Google/Apple they're using)
+    def _feedbackReceivedCallback(self, listOfFeedbackObjects):
+        theString = APNSFeedback.listToString(listOfFeedbackObjects)
+        logging.debug("Got feedback successfully, writing to connector...")
+        # SRI.. what happens if the other side stops listening half way through?
+        self.transport.write(theString)
+
+    def _feedbackErrorCallback(self, reason):
+        # SRI: what to do?
+        logging.error(reason)
 
     def lineReceived(self, line):
         # each line will have:
@@ -46,11 +66,22 @@ class LineProtocol(LineReceiver):
         #                   now now onwards.
         #   "line"      -   Sends a line of data to apple and has the format: 
         #                       deviceToken,identifier,expiry,payload
+        #   "feedback"  -   Retrieves feedback
         line = line.strip()
         if line.startswith("connect:"):
             line = line[8:]
             self.curr_app_id, self.curr_app_mode = [l.strip() for l in line.split(":")]
             logging.debug("Current App changed to '%s:%s'" % (self.curr_app_mode, self.curr_app_id))
+        elif line.startswith("feedback:"):
+            if not self.curr_app_id:
+                logging.warning("App ID has not yet been set.  Expecting 'connect' command first")
+            else:
+
+                deferred = defer.Deferred()
+                deferred.addCallbacks(self._feedbackReceivedCallback, self._feedbackErrorCallback)
+                self.apns_daemon.getFeedback(self.curr_app_id, self.curr_app_mode, deferred)
+
+            
         elif line.startswith("line:"):
             line = line[5:].strip()
             if not self.curr_app_id:
@@ -110,4 +141,6 @@ class LineProtocolFactory(Factory):
         logging.debug("%s:%s - Data Received: %s" % params)
         # msg = ":".join([app_name, app_mode, json.dumps(map(ord, data))])
         # self.transport.write(msg)
+
+
 

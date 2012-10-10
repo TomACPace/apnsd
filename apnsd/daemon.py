@@ -177,6 +177,9 @@ class APNSFactory(ReconnectingClientFactory):
         logging.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))
         self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
 
+    def __str__(self):
+        return "%s - %s - %s" % (self.app_mode, self.app_name, super(APNSFactory, self).__str__())
+
     def closeConnection(self):
         if self.currProtocol:
             self.currProtocol.closeConnection()

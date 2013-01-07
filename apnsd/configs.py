@@ -21,6 +21,8 @@ def read_listeners_in_config(config_file, apns_daemon, service_parent):
     Reads the config file and return all the listeners in it one by one.
     """
     if not os.path.isfile(config_file):
+        import sys
+        print >> sys.stderr, "Config Path: %s" % os.environ("APNSD_CONFIG_DIR")
         raise errors.ConfigFileError(config_file, "File not found: %s" % config_file)
 
     configs = eval(open(config_file).read())
@@ -59,7 +61,7 @@ def read_apps_in_config(config_file, apns_daemon):
     configs = eval(open(config_file).read())
     if 'apps' not in configs:
         raise errors.ConfigFileError(config_file, "'apps' section not found")
-        
+
     apps = configs['apps']
     for app_name in apps:
         app = apps[app_name]
@@ -79,8 +81,6 @@ def read_apps_in_config(config_file, apns_daemon):
                 fs_class = importClass(fs_class)
                 logging.debug("Creating Feedback Service: " + str(fs_class))
                 feedbackService = fs_class(apns_daemon.reactor, app_name, app_mode, **app_data)
-                
 
             apns_daemon.registerApp(app_name, app_mode, app_factory, feedbackService)
-
 

@@ -163,10 +163,10 @@ class APNSFactory(ReconnectingClientFactory):
         # see if we need defaults
         self.apns_host = self.apns_host or    \
                         (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_HOST) or  \
-                        (self.app_mode == "apns_rel" and constants.DEFAULT_APNS_PROD_HOST)
+                        (self.app_mode == "apns_prod" and constants.DEFAULT_APNS_PROD_HOST)
         self.apns_port = self.apns_port or    \
                     (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_PORT) or  \
-                    (self.app_mode == "apns_rel" and constants.DEFAULT_APNS_PROD_PORT)
+                    (self.app_mode == "apns_prod" and constants.DEFAULT_APNS_PROD_PORT)
 
         self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
         self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
@@ -302,10 +302,10 @@ class FeedbackApplication:
         # see if we need defaults
         self.feedback_host = self.feedback_host or    \
                             (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_HOST) or  \
-                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_HOST)
+                            (self.app_mode == "apns_prod" and constants.DEFAULT_FEEDBACK_PROD_HOST)
         self.feedback_port = self.feedback_port or    \
                             (self.app_mode == "apns_dev" and constants.DEFAULT_FEEDBACK_DEV_PORT) or  \
-                            (self.app_mode == "apns_rel" and constants.DEFAULT_FEEDBACK_PROD_PORT)
+                            (self.app_mode == "apns_prod" and constants.DEFAULT_FEEDBACK_PROD_PORT)
 
         self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
         self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])

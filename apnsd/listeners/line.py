@@ -37,7 +37,7 @@ class LineProtocol(LineReceiver):
     def logUsage(self, line):
         logging.debug("Invalid line: " + line)
         logging.debug("Usage: ")
-        logging.debug("     connect: <app_id>:<app_mode = 'rel' or 'dev'>")
+        logging.debug("     connect: <app_id>:<app_mode = 'prod' or 'dev'>")
         logging.debug("     line: <device token>,<identifier_or_None>,<expiry_or_None>,<payload>")
         logging.debug("     feedback:")
 

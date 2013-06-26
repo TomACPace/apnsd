@@ -16,6 +16,7 @@
 #
 ###############################################################################
 
+import socket
 import logging, json
 # SRI: my knowledge of good python packaging & structuring is rusty
 # I tested by starting python from the level below, and the line below
@@ -30,9 +31,15 @@ class LineClient(object):
     protocol server, instead of having to manage socket connections and
     data formatting manually.
     """
-    def __init__(self, app, app_mode, port = 90, host = "localhost", readTimeout = 1.0, readBufSize=2048):
-        logging.debug("Creating line connector client...")
-        self.app_id = app
+    def __init__(self, app_id, app_mode, port, host="localhost",
+                                            readTimeout=1.0, readBufSize=2048):
+        """
+        app_id: e.g. 'SHDemo'
+        app_mode: e.g. 'apns_dev' | 'apns_prod'
+        """
+        logging.debug("Creating LineClient %s(%s) on %s:%s" %(app_id, app_mode,
+                                                                    host, port))
+        self.app_id = app_id
         self.app_mode = app_mode
         self.serverPort = port
         self.serverHost = host
@@ -42,16 +49,35 @@ class LineClient(object):
 
     def _connectIfRequired(self):
         if not self.connSocket:
-            import socket
-            logging.debug("Connecting to daemon at: %s:%d" % (self.serverHost, self.serverPort))
+            logging.debug("Connecting to daemon at: %s:%d" %(self.serverHost,
+                                                            self.serverPort))
             self.connSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.connSocket.connect((self.serverHost, self.serverPort))
             # tell the server which app we are sending messages for
-            self.connSocket.send("connect: " + self.app_id + ":" + self.app_mode + "\r\n")
+            self.connSocket.send("connect: " + self.app_id + ":" + \
+                                                        self.app_mode + "\r\n")
 
-    def sendLine(self, line):
+    def _sendLine(self, line):
         self._connectIfRequired()
-        return self.connSocket.send("line: " + line + "\r\n")
+        # here we have Broken pipe errors sometimes
+        # reproducable by sending a connect string to the server
+        # that splits up into more than two parts, e.g.
+        # connect: AppId:icck:apns_prod
+        # or when an application is not registered for apns
+        # (isn't included in the config file)
+        try:
+            return self.connSocket.send("line: " + line + "\r\n")
+        except socket.error, e:
+            logging.critical(e)
+            logging.critical('Line: %s' %line)
+            logging.critical('AppId: %s' %self.app_id)
+            logging.critical('App Mode: %s' %self.app_mode)
+            logging.critical('Host: %s' %self.serverHost)
+            logging.critical('Port: %s' %self.serverPort)
+
+            self.connSocket.close()
+            self.connSocket = None
+            
 
     def getFeedback(self):
         self._connectIfRequired()
@@ -62,13 +88,14 @@ class LineClient(object):
         self.connSocket.settimeout(self.readTimeout)
         totalString = ""
         try:
-            receivedChunk = "XXX" # just make this non empty so the while loop doesn't exit straight away - we throw it away anyway
-            # nb: we can't check for the end marker in the chunk because the end
-            # marker might be split up amongst chunks
+            receivedChunk = "XXX" # just make this non empty so the while loop
+            #doesn't exit straight away - we throw it away anyway
+            # nb: we can't check for the end marker in the chunk because the 
+            # end marker might be split up amongst chunks
             # SRI: note that this means if for some reason this
             # call is somehow reading the data from another call, then
-            # we will lose this data.. not sure if this is possible with how it's used
-            # atm though
+            # we will lose this data.. not sure if this is possible with how 
+            # it's used atm though
             # ie: consider receiving: TIMESTAMP:LENGTH:TOKEN:ENDTIMESTAMP2:LE
             # not sure if it's easy to get around because you've already
             # read read the start of the next feedback item list from the socket
@@ -76,13 +103,14 @@ class LineClient(object):
             # one read can ever be queued up
             # ALSO: There might be soemthign on the web.. a pattern.. which
             # already solves this problem.. I might have a look later
-            while receivedChunk and not APNSFeedback.stringContainsEnd(totalString):
-
+            while receivedChunk and not APNSFeedback.stringContainsEnd(
+                                                                totalString):
                 receivedChunk = self.connSocket.recv(self.readBufSize)
                 totalString += receivedChunk
 
-        except exception.timeout, e:
-            logging.warning("Timed out reading on socket.. will attempt to process received data")
+        except socket.timeout, e:
+            logging.warning("Timed out reading on socket.. will attempt to \
+                                                        process received data")
 
         logging.debug("Received: " + totalString)
         self.connSocket.settimeout(oldTimeout)
@@ -93,7 +121,7 @@ class LineClient(object):
         if type(payload) not in (str, unicode):
             payload = json.dumps(payload)
         line = "%s,%s,%s,%s" % (devtoken, str(identifier), str(expiry), payload)
-        result = self.sendLine(line)
+        result = self._sendLine(line)
         logging.debug("=" * 80)
         logging.debug("Send message Result: " + str(result))
         if identifier is not None:

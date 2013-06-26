@@ -16,6 +16,8 @@
 #
 ###############################################################################
 
+import logging
+
 class SerialisationException(Exception):
 
     def __init__(self, what):

@@ -18,7 +18,7 @@
 ###############################################################################
 
 import threading, Queue, optparse, os, logging, copy
-from twisted.internet.protocol import ReconnectingClientFactory, ClientFactory, Protocol, ClientCreator
+from twisted.internet.protocol import ReconnectingClientFactory, Protocol, ClientCreator
 from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
 import constants, errors, utils
 
@@ -93,8 +93,6 @@ class APNSDaemon(threading.Thread):
             self.feedback_services[real_app_name] = feedbackService
 
 
-
-
     def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
         # tell all listeners that data was received for an app
         logging.debug("%s:%s -> Sending response to listeners..." % (app_mode, app_name))
@@ -130,8 +128,8 @@ class APNSDaemon(threading.Thread):
 
     def run(self):
         # start the reactor
-        # note we are not connecting to APN server here.  We will do this
-        # the first time a notification needs to be sent.  But instead we
+        # note we are not connecting to APN server here. We will do this
+        # the first time a notification needs to be sent. But instead we
         # listen to connection on the local network as we are the
         # standalone daemon.
         logging.info("APNS Daemon Started...")
@@ -161,9 +159,11 @@ class APNSFactory(ReconnectingClientFactory):
         self.apns_host = kwargs.get("apns_host")
         self.apns_port = kwargs.get("apns_port")
         # see if we need defaults
+        assert self.apns_host or self.app_mode, 'Either one of apns_host and app_mode needs to be set!'
         self.apns_host = self.apns_host or    \
                         (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_HOST) or  \
                         (self.app_mode == "apns_prod" and constants.DEFAULT_APNS_PROD_HOST)
+        assert self.apns_port or self.app_mode, 'Either one of apns_port and app_mode needs to be set!'
         self.apns_port = self.apns_port or    \
                     (self.app_mode == "apns_dev" and constants.DEFAULT_APNS_DEV_PORT) or  \
                     (self.app_mode == "apns_prod" and constants.DEFAULT_APNS_PROD_PORT)
@@ -175,6 +175,7 @@ class APNSFactory(ReconnectingClientFactory):
         self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
 
         logging.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))
+        # apns_host seems to be of type bool sometimes
         self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
 
     def __str__(self):
@@ -213,14 +214,14 @@ class APNSFactory(ReconnectingClientFactory):
                                                                 (self.app_mode, self.app_id))
         return self.currProtocol
 
-    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
+    def sendMessage(self, deviceToken, payload, identifier=None, expiry=None):
         if self.currProtocol and self.currProtocol.connected:
             self.currProtocol.sendMessage(deviceToken, payload, identifier, expiry)
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.warning("%s:%s -> Protocol not yet created.  Message queued..." %
-                                    (self.app_mode, self.app_id))
+            logging.warning("%s:%s:%s -> Protocol not yet created.  Message queued..." %
+                                    (__name__, self.app_mode, self.email))
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSProtocol(Protocol):
@@ -262,7 +263,7 @@ class APNSProtocol(Protocol):
             self.connListener.dataReceived(data, self.app_id, self.app_mode,
                                            *self.connListenerArgs, **self.connListenerKWArgs)
 
-    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
+    def sendMessage(self, deviceToken, payload, identifier=None, expiry=None):
         msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
         self.transport.write(msg)
         logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.app_id, str(map(ord, msg))))
@@ -283,6 +284,7 @@ class FeedbackProtocol(Protocol):
         self.data += data
 
     def connectionLost(self, reason):
+        logging.debug('FeedbackProtocol protocol lost connection, reason: %s' %reason)
         buff = copy.deepcopy(self.data)
         items = utils.getFeedbackItems(buff)
         self.deferredResult.callback(items)
@@ -350,6 +352,7 @@ class C2DMFactory(ReconnectingClientFactory):
         self.login_url = self.login_host or constants.DEFAULT_C2DM_LOGIN_URL
 
         # self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
+        print "Connecting to C2DM Server, App: %s:%s" % (self.app_mode, self.email)
         logging.info("Connecting to C2DM Server, App: %s:%s" % (self.app_mode, self.email))
         # self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
 
@@ -369,10 +372,12 @@ class C2DMFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
     def startedConnecting(self, connector):
+        print "%s:%s -> Started connecting to C2DM connector..." % (self.app_mode, self.email)
         logging.info("%s:%s -> Started connecting to C2DM connector..." % (self.app_mode, self.email))
         self.resetDelay()
 
     def buildProtocol(self, addr):
+        print "%s:%s -> Building C2DM Protocol to C2DM Server %s:%u..." % (self.app_mode, self.email, addr.host, addr.port)
         logging.info("%s:%s -> Building C2DM Protocol to C2DM Server %s:%u..." %
                                 (self.app_mode, self.email, addr.host, addr.port))
         if not (self.currProtocol and self.currProtocol.connected):
@@ -388,13 +393,17 @@ class C2DMFactory(ReconnectingClientFactory):
         return self.currProtocol
 
     def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
+        print "Attempt to send via C2DM: ", __name__
+        print "Attempted payload : ", payload
+        print "Attempted protocol: ", self.currProtocol
         if self.currProtocol and self.currProtocol.connected:
             self.currProtocol.sendMessage(deviceToken, payload, identifier, expiry)
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.warning("%s:%s -> Protocol not yet created.  Message queued..." %
-                                    (self.app_mode, self.email))
+            print "Attempt failed: ", self.__class__.__name__
+            logging.warning("%s:%s:%s -> Protocol not yet created.  Message queued..." %
+                                    (__name__, self.app_mode, self.email))
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class C2DMProtocol(Protocol):

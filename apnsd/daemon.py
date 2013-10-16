@@ -71,7 +71,6 @@ class APNSDaemon(threading.Thread):
         if app_name in self.feedback_services:
             del self.feedback_services[app_name]
 
-
     def registerApp(self, app_name, app_mode, app_factory, feedbackService):
         """
         Initialises a new app's connection with the APNS server so when
@@ -91,7 +90,6 @@ class APNSDaemon(threading.Thread):
 
             logging.info("Registering Application for feedback service: %s..." % (real_app_name))
             self.feedback_services[real_app_name] = feedbackService
-
 
     def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
         # tell all listeners that data was received for an app

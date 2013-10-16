@@ -109,8 +109,11 @@ class LineClient(object):
                 totalString += receivedChunk
 
         except socket.timeout, e:
-            logging.warning("Timed out reading on socket.. will attempt to \
-                                                        process received data")
+            #tobi: as taras said, the communication between LineClient and
+            #the deamon happens synchronously but I am getting timeouts here.
+            logging.warning("Timed out reading on socket.. will attempt to "\
+                            "process received data. app_id: %s, app_mode: %s"\
+                            %(self.app_id, self.app_mode))
 
         logging.debug("Received: " + totalString)
         self.connSocket.settimeout(oldTimeout)

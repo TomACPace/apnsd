@@ -54,7 +54,7 @@ class LineClient(object):
             self.connSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.connSocket.connect((self.serverHost, self.serverPort))
             # tell the server which app we are sending messages for
-            self.connSocket.send("connect: " + self.app_id + ":" + \
+            self.connSocket.send("connect: " + str(self.app_id) + ":" + \
                                                         self.app_mode + "\r\n")
 
     def _sendLine(self, line):

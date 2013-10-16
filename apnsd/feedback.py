@@ -42,7 +42,6 @@ class APNSFeedback:
         # in the middle of the string
         return APNSFeedback.END_MARKER in theString
 
-
     @staticmethod
     def fromString(theString):
         elements = theString.split(",")
@@ -64,8 +63,9 @@ class APNSFeedback:
     @staticmethod
     def listFromString(theString):
         toReturn = []
+        if theString in ('', 'END'): #nothing to extract
+            return toReturn
         elts = theString.split(":")
-
         try:
             for elt in elts:
 
@@ -78,13 +78,4 @@ class APNSFeedback:
 
         except SerialisationException, e:
             logging.error("Error in deserialising string, problem was: %s. Returning results that were found.."%e.what)
-
         return toReturn
-
-        
-            
-            
-
-        
-
-    

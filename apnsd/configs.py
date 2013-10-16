@@ -14,8 +14,6 @@ def importClass(theClass):
 
     return theClass
 
-
-
 def read_listeners_in_config(config_file, apns_daemon, service_parent):
     """
     Reads the config file and return all the listeners in it one by one.

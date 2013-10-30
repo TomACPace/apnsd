@@ -218,8 +218,8 @@ class APNSFactory(ReconnectingClientFactory):
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.warning("%s:%s:%s -> Protocol not yet created.  Message queued..." %
-                                    (__name__, self.app_mode, self.email))
+            logging.warning("%s:%s -> Protocol not yet created.  Message queued..." %
+                                    (__name__, self.app_mode))
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
 class APNSProtocol(Protocol):

@@ -23,6 +23,7 @@ import logging, json
 # worked, but I'm not sure how, where it would work in general
 # eg if you were importing this module from Django, would the import below
 # work?
+from time import sleep
 from apnsd.feedback import APNSFeedback
 
 class LineClient(object):
@@ -66,19 +67,18 @@ class LineClient(object):
         # or when an application is not registered for apns
         # (isn't included in the config file)
         try:
-            return self.connSocket.send("line: " + line + "\r\n")
+            return self.connSocket.send("line: " + line + "\r\n"), None
         except socket.error, e:
-            logging.critical(e)
-            logging.critical('Line: %s' %line)
-            logging.critical('AppId: %s' %self.app_id)
-            logging.critical('App Mode: %s' %self.app_mode)
-            logging.critical('Host: %s' %self.serverHost)
-            logging.critical('Port: %s' %self.serverPort)
-
+            #logging.critical(e)
+            #logging.critical('Line: %s' %line)
+            #logging.critical('AppId: %s' %self.app_id)
+            #logging.critical('App Mode: %s' %self.app_mode)
+            #logging.critical('Host: %s' %self.serverHost)
+            #logging.critical('Port: %s' %self.serverPort)
             self.connSocket.close()
             self.connSocket = None
+            return None, e
             
-
     def getFeedback(self):
         self._connectIfRequired()
         logging.debug("requesting feedback...")
@@ -120,15 +120,27 @@ class LineClient(object):
         # SRI: note that this itself might error...
         return APNSFeedback.listFromString(totalString)
         
-    def sendMessage(self, devtoken, payload, identifier = None, expiry = None):
+    def sendMessage(self, devtoken, payload, identifier=None, expiry=None):
         if type(payload) not in (str, unicode):
             payload = json.dumps(payload)
         line = "%s,%s,%s,%s" % (devtoken, str(identifier), str(expiry), payload)
-        result = self._sendLine(line)
+        result = False
+        tries = 5
+        for i in range(tries):
+            result, error = self._sendLine(line)
+            if not error: continue
+            logging.warning('Attempt #%s failed to send: \n%s \nwith %s'
+                            %(i, line, error))
+            sleep(1)
+
+        if not result:
+            logging.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(tries, line))
+            return -1, "Not Successful"
+            
         logging.debug("=" * 80)
         logging.debug("Send message Result: " + str(result))
         if identifier is not None:
-            # since an identifier was specified we must be seding an
+            # since an identifier was specified we must be sending an
             # extended notification. So read a response from the server
             # response regarding the status of the notification
             # Response is binary of the format: <count><payload>

@@ -49,7 +49,6 @@ class HttpClient(object):
         except urllib2.HTTPError, he:
             return -1, he.read()
 
-
     def sendRawMessage(self, devtoken, payload):
         url = "%s/%s/?username=%s&env=%s" % (self.baseUrl, devtoken, self.serverUsername, self.envType)
         data = urllib2.quote(payload)
@@ -59,4 +58,3 @@ class HttpClient(object):
             return 0, response.read()
         except urllib2.HTTPError, he:
             return -1, he.read()
-

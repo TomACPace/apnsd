@@ -76,11 +76,9 @@ class LineProtocol(LineReceiver):
             if not self.curr_app_id:
                 logging.warning("App ID has not yet been set.  Expecting 'connect' command first")
             else:
-
                 deferred = defer.Deferred()
                 deferred.addCallbacks(self._feedbackReceivedCallback, self._feedbackErrorCallback)
                 self.apns_daemon.getFeedback(self.curr_app_id, self.curr_app_mode, deferred)
-
             
         elif line.startswith("line:"):
             line = line[5:].strip()

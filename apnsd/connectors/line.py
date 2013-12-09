@@ -17,7 +17,7 @@
 ###############################################################################
 
 import socket
-import logging, json
+import json
 # SRI: my knowledge of good python packaging & structuring is rusty
 # I tested by starting python from the level below, and the line below
 # worked, but I'm not sure how, where it would work in general
@@ -25,6 +25,11 @@ import logging, json
 # work?
 from time import sleep
 from apnsd.feedback import APNSFeedback
+
+import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class LineClient(object):
     """
@@ -75,6 +80,7 @@ class LineClient(object):
             #logging.critical('App Mode: %s' %self.app_mode)
             #logging.critical('Host: %s' %self.serverHost)
             #logging.critical('Port: %s' %self.serverPort)
+            logging.warning('socket.error: %s' %e)
             self.connSocket.close()
             self.connSocket = None
             return None, e
@@ -127,8 +133,10 @@ class LineClient(object):
         result = False
         tries = 5
         for i in range(tries):
+            logging.debug('Attempt #%s to send: %s' %(i, line))
             result, error = self._sendLine(line)
-            if not error: break
+            if not error:
+                break
             logging.warning('Attempt #%s failed to send: \n%s \nwith %s'
                             %(i, line, error))
             sleep(1)

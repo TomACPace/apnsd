@@ -128,7 +128,7 @@ class LineClient(object):
         tries = 5
         for i in range(tries):
             result, error = self._sendLine(line)
-            if not error: continue
+            if not error: break
             logging.warning('Attempt #%s failed to send: \n%s \nwith %s'
                             %(i, line, error))
             sleep(1)

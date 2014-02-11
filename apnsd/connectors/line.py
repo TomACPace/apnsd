@@ -131,8 +131,8 @@ class LineClient(object):
             payload = json.dumps(payload)
         line = "%s,%s,%s,%s" % (devtoken, str(identifier), str(expiry), payload)
         result = False
-        tries = 5
-        for i in range(tries):
+        attempts = 5
+        for i in range(attempts):
             logging.debug('Attempt #%s to send: %s' %(i, line))
             result, error = self._sendLine(line)
             if not error:
@@ -142,7 +142,7 @@ class LineClient(object):
             sleep(1)
 
         if not result:
-            logging.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(tries, line))
+            logging.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(attempts, line))
             return -1, "Not Successful"
             
         logging.debug("=" * 80)

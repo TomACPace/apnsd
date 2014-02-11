@@ -1,0 +1,34 @@
+
+Requirements:
+-------------
+OpenSSL - http://pyopenssl.sourceforge.net/
+simplejson - http://pypi.python.org/pypi/simplejson/
+twisted - http://twistedmatrix.com
+TokyoCabinet and TokyoTyrant - http://1978th.net/tokyocabinet/
+
+1. Run the Tokyo Cabinet Server
+-------------------------------
+
+First of all start TokyoCabinet.  TC can be started in two ways.  IN daemon
+mode or in test mode.
+
+1.1 Running TC in Dev Mode:
+    
+    ttserver -host <hostname = localhost> -port <port_num = 1978> -log <logfile> dbname
+
+1.2 Running TC in Daemon Mode
+
+                TODO
+
+2. Run the Twisted App:
+-----------------------
+
+To run apnds as a daemon:
+
+    cd <path_to_apnsd>
+    twistd -r <poll_type> apnsd -c <config_file>
+
+To run in non daemon mode:
+
+    cd <path_to_apnsd>
+    twistd -n -r <poll_type> apnsd -c <config_file>

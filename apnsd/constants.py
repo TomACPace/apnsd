@@ -16,6 +16,10 @@
 #
 ###############################################################################
 
+import logging
+
+LOG_LEVEL = logging.DEBUG 
+
 MAX_PAYLOAD_LENGTH          = 256
 DEVICE_TOKEN_LENGTH         = 32
 

@@ -17,10 +17,15 @@
 #
 ###############################################################################
 
-import threading, Queue, optparse, os, logging, copy
+import threading, Queue, optparse, os, copy
 from twisted.internet.protocol import ReconnectingClientFactory, Protocol, ClientCreator
 from twisted.internet.ssl import DefaultOpenSSLContextFactory as SSLContextFactory
 import constants, errors, utils
+
+import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 ####################################################################################################
 ##                                      APNS Connectivity
@@ -232,6 +237,8 @@ class APNSProtocol(Protocol):
         self.connListener = connListener
         self.connListenerArgs = connListenerArgs
         self.connListenerKWArgs = connListenerKWArgs
+        #msg = "APNSProtocol initialized: %s" %app_id
+        #logger.info(msg)
 
     def closeConnection(self):
         """
@@ -264,7 +271,7 @@ class APNSProtocol(Protocol):
     def sendMessage(self, deviceToken, payload, identifier=None, expiry=None):
         msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
         self.transport.write(msg)
-        logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.app_id, str(map(ord, msg))))
+        logger.info("%s:%s -> Sent Message: %s" % (self.app_mode, self.app_id, str(map(ord, msg))))
 
 class FeedbackProtocol(Protocol):
 
@@ -316,137 +323,3 @@ class FeedbackApplication:
         cc = ClientCreator(self.reactor, FeedbackProtocol, deferred)
         # SRI: not sure what the client_context_factory is for.. is it ok to reuse like this?
         cc.connectSSL(self.feedback_host, self.feedback_port, self.client_context_factory)
-
-
-####################################################################################################
-##                                      C2DM Connectivity
-####################################################################################################
-from   twisted.web._newclient       import HTTP11ClientProtocol
-from   twisted.web._newclient       import Request
-from   twisted.web.client           import _parse
-
-class C2DMFactory(ReconnectingClientFactory):
-    def __init__(self, reactor, app_name, app_mode,
-                 connListener = None,
-                 connListenerArgs = [],
-                 connListenerKWArgs = {},
-                 **kwargs):
-        self.initialDelay = kwargs.get("initialDelay", 3)
-        self.factor = kwargs.get("factor", 1)
-        self.jitter = kwargs.get("jitter", .10)
-        self.currProtocol = None
-        self.messageQueue = Queue.Queue()
-        self.reactor = reactor
-        self.app_name = app_name
-        self.app_mode = app_mode
-        self.connListener = connListener
-        self.connListenerArgs = connListenerArgs
-        self.connListenerKWArgs = connListenerKWArgs
-
-        self.email = kwargs["email"]
-        self.password = kwargs["password"]
-        self.login_host = kwargs.get("login_host")
-        # see if we need defaults
-        self.login_url = self.login_host or constants.DEFAULT_C2DM_LOGIN_URL
-
-        # self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
-        print "Connecting to C2DM Server, App: %s:%s" % (self.app_mode, self.email)
-        logging.info("Connecting to C2DM Server, App: %s:%s" % (self.app_mode, self.email))
-        # self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
-
-    def closeConnection(self):
-        if self.currProtocol:
-            self.currProtocol.closeConnection()
-            self.currProtocol = null;
-
-    def clientConnectionLost(self, connector, reason):
-        logging.info("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.email, str(reason)))
-        self.currProtocol = None
-        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
-
-    def clientConnectionFailed(self, connector, reason):
-        logging.info("%s:%s -> Connection Failed, Reason: %s" % (self.app_mode, self.email, str(reason)))
-        self.currProtocol = None
-        ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
-
-    def startedConnecting(self, connector):
-        print "%s:%s -> Started connecting to C2DM connector..." % (self.app_mode, self.email)
-        logging.info("%s:%s -> Started connecting to C2DM connector..." % (self.app_mode, self.email))
-        self.resetDelay()
-
-    def buildProtocol(self, addr):
-        print "%s:%s -> Building C2DM Protocol to C2DM Server %s:%u..." % (self.app_mode, self.email, addr.host, addr.port)
-        logging.info("%s:%s -> Building C2DM Protocol to C2DM Server %s:%u..." %
-                                (self.app_mode, self.email, addr.host, addr.port))
-        if not (self.currProtocol and self.currProtocol.connected):
-            self.currProtocol = C2DMProtocol(self.email, self.password, self.login_url,
-                                             self.app_mode,
-                                             self.messageQueue,
-                                             self.connListener,
-                                             self.connListenerArgs,
-                                             self.connListenerKWArgs)
-        else:
-            logging.info("%s:%s -> Protocol already exists, returning existing protocol..." %
-                                                                (self.app_mode, self.email))
-        return self.currProtocol
-
-    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
-        print "Attempt to send via C2DM: ", __name__
-        print "Attempted payload : ", payload
-        print "Attempted protocol: ", self.currProtocol
-        if self.currProtocol and self.currProtocol.connected:
-            self.currProtocol.sendMessage(deviceToken, payload, identifier, expiry)
-        else:
-            # queue it so when the protocol is built we can dispatch the
-            # message
-            print "Attempt failed: ", self.__class__.__name__
-            logging.warning("%s:%s:%s -> Protocol not yet created.  Message queued..." %
-                                    (__name__, self.app_mode, self.email))
-            self.messageQueue.put((deviceToken, payload, identifier, expiry))
-
-class C2DMProtocol(Protocol):
-    def __init__(self, email, password, login_url, app_mode,
-                 messageQueue, connListener, connListenerArgs = [], connListenerKWArgs = {}):
-        """ Initialises the protocol with the message queue. """
-        self.email = email
-        self.password = password
-        self.login_url = login_url
-        self.app_mode = app_mode
-        self.messageQueue = messageQueue
-        self.connListener = connListener
-        self.connListenerArgs = connListenerArgs
-        self.connListenerKWArgs = connListenerKWArgs
-
-    def closeConnection(self):
-        """
-        Closes the transport.
-        """
-        self.transport.loseConnection()
-
-    def connectionMade(self):
-        """
-        After a connection is made we send out messages in our queue
-        """
-        while not self.messageQueue.empty():
-            deviceToken, payload, identifier, expiry = self.messageQueue.get()
-            self.sendMessage(deviceToken, payload, identifier, expiry)
-
-    def connectionLost(self, reason):
-        logging.info("%s:%s -> Connection to C2DM Lost: %s" % (self.app_mode, self.email, str(reason)))
-
-    def dataReceived(self, data):
-        """
-        Called when server has sent us some data.  For now we just
-        print out the data.
-        """
-        logging.debug("%s:%s -> C2DM Data [(%d) bytes] Received: %s" %
-                    (self.app_mode, self.email, len(data), str(map(ord, data))))
-        if self.connListener:
-            self.connListener.dataReceived(data, self.email, self.app_mode,
-                                           *self.connListenerArgs, **self.connListenerKWArgs)
-
-    def sendMessage(self, deviceToken, payload, identifier = None, expiry = None):
-        msg = utils.formatMessage(deviceToken, payload, identifier, expiry)
-        self.transport.write(msg)
-        logging.debug("%s:%s -> Sent Message: %s" % (self.app_mode, self.email, str(map(ord, msg))))
-

@@ -60,6 +60,7 @@ class APNSDaemon(threading.Thread):
         daemon on connection events, like connection closed, data received
         etc.
         """
+        logger.info('registerListener: %s' %listener_name)
         if listener_name in self.listeners:
             raise errors.ListenerRegistrationError(listener_name, "Listener already registered")
 
@@ -81,24 +82,25 @@ class APNSDaemon(threading.Thread):
         Initialises a new app's connection with the APNS server so when
         time comes for requests it can be used.
         """
+        logger.info('registerApp: %s (%s)' %(app_name, app_mode))
         real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
 
         if real_app_name in self.conn_factories:
             raise errors.AppRegistrationError(real_app_name, "Application already registered for APNS")
 
-        logging.info("Registering Application for APNS: %s..."%real_app_name)
+        logger.info("Registering Application for APNS: %s..."%real_app_name)
         self.conn_factories[real_app_name] = app_factory
 
         if feedbackService:
             if real_app_name in self.feedback_services:
                 raise errors.AppRegistrationError(real_app_name, "Application already registered for feedback service")
 
-            logging.info("Registering Application for feedback service: %s..." % (real_app_name))
+            logger.info("Registering Application for feedback service: %s..." % (real_app_name))
             self.feedback_services[real_app_name] = feedbackService
 
     def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
         # tell all listeners that data was received for an app
-        logging.debug("%s:%s -> Sending response to listeners..." % (app_mode, app_name))
+        logger.debug("%s:%s -> Sending response to listeners..." % (app_mode, app_name))
         for listener in self.listeners.values():
             listener.dataAvailableForClient(data, app_name, app_mode)
 
@@ -135,7 +137,7 @@ class APNSDaemon(threading.Thread):
         # the first time a notification needs to be sent. But instead we
         # listen to connection on the local network as we are the
         # standalone daemon.
-        logging.info("APNS Daemon Started...")
+        logger.info("APNS Daemon Started...")
         self.reactor.run()
 
 class APNSFactory(ReconnectingClientFactory):
@@ -173,11 +175,11 @@ class APNSFactory(ReconnectingClientFactory):
 
         self.certificate_file = utils.resolve_env_vars(kwargs["certificate_file"])
         self.privatekey_file = utils.resolve_env_vars(kwargs["privatekey_file"])
-        logging.info("Certificate File: %s" % self.certificate_file)
-        logging.info("PrivateKey File: %s" % self.privatekey_file)
+        logger.info("Certificate File: %s" % self.certificate_file)
+        logger.info("PrivateKey File: %s" % self.privatekey_file)
         self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
 
-        logging.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))
+        logger.info("Connecting to APNS Server, App: %s:%s" % (self.app_mode, self.app_id))
         # apns_host seems to be of type bool sometimes
         self.reactor.connectSSL(self.apns_host, self.apns_port, self, self.client_context_factory)
 
@@ -190,21 +192,21 @@ class APNSFactory(ReconnectingClientFactory):
             self.currProtocol = null;
 
     def clientConnectionLost(self, connector, reason):
-        logging.info("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
+        logger.info("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        logging.info("%s:%s -> Connection Failed, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
+        logger.info("%s:%s -> Connection Failed, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
     def startedConnecting(self, connector):
-        logging.info("%s:%s -> Started connecting to APNS connector..." % (self.app_mode, self.app_id))
+        logger.info("%s:%s -> Started connecting to APNS connector..." % (self.app_mode, self.app_id))
         self.resetDelay()
 
     def buildProtocol(self, addr):
-        logging.info("%s:%s -> Building APNS Protocol to APNS Server %s:%u..." %
+        logger.info("%s:%s -> Building APNS Protocol to APNS Server %s:%u..." %
                                 (self.app_mode, self.app_id, addr.host, addr.port))
         if not (self.currProtocol and self.currProtocol.connected):
             self.currProtocol = APNSProtocol(self.app_id, self.app_mode,
@@ -213,7 +215,7 @@ class APNSFactory(ReconnectingClientFactory):
                                              self.connListenerArgs,
                                              self.connListenerKWArgs)
         else:
-            logging.info("%s:%s -> Protocol already exists, returning existing protocol..." %
+            logger.info("%s:%s -> Protocol already exists, returning existing protocol..." %
                                                                 (self.app_mode, self.app_id))
         return self.currProtocol
 
@@ -223,7 +225,7 @@ class APNSFactory(ReconnectingClientFactory):
         else:
             # queue it so when the protocol is built we can dispatch the
             # message
-            logging.warning("%s:%s -> Protocol not yet created.  Message queued..." %
+            logger.warning("%s:%s -> Protocol not yet created.  Message queued..." %
                                     (__name__, self.app_mode))
             self.messageQueue.put((deviceToken, payload, identifier, expiry))
 
@@ -255,14 +257,14 @@ class APNSProtocol(Protocol):
             self.sendMessage(deviceToken, payload, identifier, expiry)
 
     def connectionLost(self, reason):
-        logging.info("%s:%s -> Connection to APNS Lost: %s" % (self.app_mode, self.app_id, str(reason)))
+        logger.info("%s:%s -> Connection to APNS Lost: %s" % (self.app_mode, self.app_id, str(reason)))
 
     def dataReceived(self, data):
         """
         Called when server has sent us some data.  For now we just
         print out the data.
         """
-        logging.debug("%s:%s -> APNS Data [(%d) bytes] Received: %s" %
+        logger.debug("%s:%s -> APNS Data [(%d) bytes] Received: %s" %
                     (self.app_mode, self.app_id, len(data), str(map(ord, data))))
         if self.connListener:
             self.connListener.dataReceived(data, self.app_id, self.app_mode,
@@ -285,11 +287,11 @@ class FeedbackProtocol(Protocol):
         Called when server has sent us some data.  For now we just
         print out the data.
         """
-        logging.debug("Feedback Data [(%d) bytes] Received"%(len(data)))
+        logger.debug("Feedback Data [(%d) bytes] Received"%(len(data)))
         self.data += data
 
     def connectionLost(self, reason):
-        logging.debug('FeedbackProtocol protocol lost connection, reason: %s' %reason)
+        logger.debug('FeedbackProtocol protocol lost connection, reason: %s' %reason)
         buff = copy.deepcopy(self.data)
         items = utils.getFeedbackItems(buff)
         self.deferredResult.callback(items)
@@ -319,7 +321,7 @@ class FeedbackApplication:
         self.client_context_factory = SSLContextFactory(self.privatekey_file, self.certificate_file)
 
     def getFeedback(self, deferred):
-        logging.info("Connecting to Feedback Server, App: %s:%s" % (self.app_mode, self.app_id))
+        logger.info("Connecting to Feedback Server, App: %s:%s" % (self.app_mode, self.app_id))
         cc = ClientCreator(self.reactor, FeedbackProtocol, deferred)
         # SRI: not sure what the client_context_factory is for.. is it ok to reuse like this?
         cc.connectSSL(self.feedback_host, self.feedback_port, self.client_context_factory)

@@ -25,7 +25,7 @@ import constants, errors, utils
 import logging
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(constants.LOG_LEVEL)
 
 ####################################################################################################
 ##                                      APNS Connectivity

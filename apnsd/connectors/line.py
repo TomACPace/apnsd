@@ -27,11 +27,12 @@ import json
 # work?
 from time import sleep
 from apnsd.feedback import APNSFeedback
+from .. import constants
 
 import logging
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(constants.LOG_LEVEL)
 
 class LineClient(object):
     """
@@ -45,7 +46,7 @@ class LineClient(object):
         app_id: e.g. 'SHDemo'
         app_mode: e.g. 'apns_dev' | 'apns_prod'
         """
-        logging.debug("Creating LineClient %s(%s) on %s:%s" %(app_id, app_mode,
+        logger.debug("Creating LineClient %s(%s) on %s:%s" %(app_id, app_mode,
                                                                     host, port))
         self.app_id = app_id
         self.app_mode = app_mode
@@ -57,7 +58,7 @@ class LineClient(object):
 
     def _connectIfRequired(self):
         if not self.connSocket:
-            logging.debug("Connecting to daemon at: %s:%d" %(self.serverHost,
+            logger.debug("Connecting to daemon at: %s:%d" %(self.serverHost,
                                                             self.serverPort))
             self.connSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.connSocket.connect((self.serverHost, self.serverPort))
@@ -76,20 +77,20 @@ class LineClient(object):
         try:
             return self.connSocket.send("line: " + line + "\r\n"), None
         except socket.error, e:
-            #logging.critical(e)
-            #logging.critical('Line: %s' %line)
-            #logging.critical('AppId: %s' %self.app_id)
-            #logging.critical('App Mode: %s' %self.app_mode)
-            #logging.critical('Host: %s' %self.serverHost)
-            #logging.critical('Port: %s' %self.serverPort)
-            logging.warning('socket.error: %s' %e)
+            #logger.critical(e)
+            #logger.critical('Line: %s' %line)
+            #logger.critical('AppId: %s' %self.app_id)
+            #logger.critical('App Mode: %s' %self.app_mode)
+            #logger.critical('Host: %s' %self.serverHost)
+            #logger.critical('Port: %s' %self.serverPort)
+            logger.warning('socket.error: %s' %e)
             self.connSocket.close()
             self.connSocket = None
             return None, e
             
     def getFeedback(self):
         self._connectIfRequired()
-        logging.debug("requesting feedback...")
+        logger.debug("requesting feedback...")
         oldTimeout = self.connSocket.gettimeout()
         self.connSocket.send("feedback:\r\n")
 
@@ -119,11 +120,11 @@ class LineClient(object):
         except socket.timeout, e:
             #tobi: as taras said, the communication between LineClient and
             #the deamon happens synchronously but I am getting timeouts here.
-            logging.warning("Timed out reading on socket.. will attempt to "\
+            logger.warning("Timed out reading on socket.. will attempt to "\
                             "process received data. app_id: %s, app_mode: %s"\
                             %(self.app_id, self.app_mode))
 
-        logging.debug("Received: " + totalString)
+        logger.debug("Received: " + totalString)
         self.connSocket.settimeout(oldTimeout)
         # SRI: note that this itself might error...
         return APNSFeedback.listFromString(totalString)
@@ -135,20 +136,20 @@ class LineClient(object):
         result = False
         attempts = 5
         for i in range(attempts):
-            logging.debug('Attempt #%s to send: %s' %(i, line))
+            logger.debug('Attempt #%s to send: %s' %(i, line))
             result, error = self._sendLine(line)
             if not error:
                 break
-            logging.warning('Attempt #%s failed to send: \n%s \nwith %s'
+            logger.warning('Attempt #%s failed to send: \n%s \nwith %s'
                             %(i, line, error))
             sleep(1)
 
         if not result:
-            logging.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(attempts, line))
+            logger.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(attempts, line))
             return -1, "Not Successful"
             
-        logging.debug("=" * 80)
-        logging.debug("Send message Result: " + str(result))
+        logger.debug("=" * 80)
+        logger.debug("Send message Result: " + str(result))
         if identifier is not None:
             # since an identifier was specified we must be sending an
             # extended notification. So read a response from the server

@@ -37,12 +37,16 @@ class AppRegistrationError(Exception):
     """
     Class of application registration error.
     """
-    def __init__(self, app_name, app_mesg = "Generic Application Error"):
-        self.app_name   = app_name
-        self.app_mesg   = app_mesg
+    def __init__(self, app_name, app_mesg="Generic Application Error", registered_apps=None):
+        self.app_name = app_name
+        self.app_mesg = app_mesg
+        self.registered_apps = registered_apps
 
     def __str__(self):
-        return "%s: %s" % (self.app_mesg, self.app_name)
+        msg = "%s: %s" % (self.app_mesg, self.app_name)
+        if self.registered_apps:
+            msg += '\nRegistered apps:' + str(self.registered_apps)
+        return msg
 
 class ListenerRegistrationError(Exception):
     """

@@ -112,7 +112,7 @@ class APNSDaemon(threading.Thread):
         """
         real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
         if real_app_name not in self.conn_factories:
-            raise errors.AppRegistrationError(app_name, "Application not registered for APNS")
+            raise errors.AppRegistrationError(app_name, "Application not registered for APNS", self.conn_factories.keys())
 
         if len(payload) > constants.MAX_PAYLOAD_LENGTH:
             raise errors.PayloadLengthError()

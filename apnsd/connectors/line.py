@@ -16,6 +16,8 @@
 #
 ###############################################################################
 
+# THIS IS THE CLIENT SIDE!
+
 import socket
 import json
 # SRI: my knowledge of good python packaging & structuring is rusty

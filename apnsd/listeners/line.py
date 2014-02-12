@@ -16,12 +16,19 @@
 #
 ###############################################################################
 
+# THIS IS THE SERVER SIDE!
+
 from twisted.protocols.basic import LineReceiver
-from twisted.internet.protocol import Factory, Protocol
+from twisted.internet.protocol import Factory
 from twisted.internet import defer
-import logging
 
 from ..feedback import APNSFeedback
+
+import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 class LineProtocol(LineReceiver):
     """
@@ -58,6 +65,10 @@ class LineProtocol(LineReceiver):
         logging.error(reason)
 
     def lineReceived(self, line):
+        #msg = 'lineReceived: %s' %line
+        #print msg
+        #logger.info(msg)
+        
         # each line will have:
         #   <command> : <command_data>
         #

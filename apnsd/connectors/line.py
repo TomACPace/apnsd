@@ -145,7 +145,7 @@ class LineClient(object):
             sleep(1)
 
         if not result:
-            logger.critical('Tried %s times to push the message: \n%s, \ngiving up!' %(attempts, line))
+            logger.error('Tried %s times to push the message: \n%s, \ngiving up!' %(attempts, line))
             return -1, "Not Successful"
             
         logger.debug("=" * 80)

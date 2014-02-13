@@ -57,7 +57,7 @@ class LineProtocol(LineReceiver):
     # presumably knows what service, eg: Google/Apple they're using)
     def _feedbackReceivedCallback(self, listOfFeedbackObjects):
         theString = APNSFeedback.listToString(listOfFeedbackObjects)
-        logger.debug("Got feedback successfully, writing to connector...")
+        logger.info("Got feedback successfully, writing to connector...")
         # SRI.. what happens if the other side stops listening half way through?
         self.transport.write(theString)
 
@@ -129,22 +129,22 @@ class LineProtocolFactory(Factory):
         port        = kwds.get("port")
         interface   = kwds.get("interface", None)
         if interface:
-            logger.info("Listening on Line Protocol on %s:%d" % (interface, port))
+            logger.debug("Listening on Line Protocol on %s:%d" % (interface, port))
         else:
-            logger.info("Listening on Line Protocol on :%d" % port)
+            logger.debug("Listening on Line Protocol on :%d" % port)
 
     def startedConnecting(self, connector):
-        logger.info("Started LineClient connection...")
+        logger.debug("Started LineClient connection...")
 
     def buildProtocol(self, addr):
-        logger.info("Building LineProtocol Server %s:%u" % (addr.host, addr.port))
+        logger.debug("Building LineProtocol Server %s:%u" % (addr.host, addr.port))
         return LineProtocol(self.apns_daemon)
 
     def clientConnectionLost(self, connector, reason):
-        logger.info("Connection to Client Lost, Reason: " + str(reason))
+        logger.warning("Connection to Client Lost, Reason: " + str(reason))
 
     def clientConnectionFailed(self, connector, reason):
-        logger.info("Connection to Client Failed, Reason: " + str(reason))
+        logger.warning("Connection to Client Failed, Reason: " + str(reason))
 
     def dataAvailableForClient(self, data, app_name, app_mode):
         """

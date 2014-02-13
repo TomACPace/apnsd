@@ -60,7 +60,7 @@ class APNSDaemon(threading.Thread):
         daemon on connection events, like connection closed, data received
         etc.
         """
-        logger.info('registerListener: %s' %listener_name)
+        logger.debug('registerListener: %s' %listener_name)
         if listener_name in self.listeners:
             raise errors.ListenerRegistrationError(listener_name, "Listener already registered")
 
@@ -82,20 +82,20 @@ class APNSDaemon(threading.Thread):
         Initialises a new app's connection with the APNS server so when
         time comes for requests it can be used.
         """
-        logger.info('registerApp: %s (%s)' %(app_name, app_mode))
+        logger.debug('registerApp: %s (%s)' %(app_name, app_mode))
         real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
 
         if real_app_name in self.conn_factories:
             raise errors.AppRegistrationError(real_app_name, "Application already registered for APNS")
 
-        logger.info("Registering Application for APNS: %s..."%real_app_name)
+        logger.debug("Registering Application for APNS: %s..."%real_app_name)
         self.conn_factories[real_app_name] = app_factory
 
         if feedbackService:
             if real_app_name in self.feedback_services:
                 raise errors.AppRegistrationError(real_app_name, "Application already registered for feedback service")
 
-            logger.info("Registering Application for feedback service: %s..." % (real_app_name))
+            logger.debug("Registering Application for feedback service: %s..." % (real_app_name))
             self.feedback_services[real_app_name] = feedbackService
 
     def dataReceived(self, data, app_name, app_mode, *args, **kwargs):
@@ -193,7 +193,7 @@ class APNSFactory(ReconnectingClientFactory):
             self.currProtocol = null;
 
     def clientConnectionLost(self, connector, reason):
-        logger.info("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
+        logger.warning("%s:%s -> Lost connection, Reason: %s" % (self.app_mode, self.app_id, str(reason)))
         self.currProtocol = None
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
@@ -203,11 +203,11 @@ class APNSFactory(ReconnectingClientFactory):
         ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
 
     def startedConnecting(self, connector):
-        logger.info("%s:%s -> Started connecting to APNS connector..." % (self.app_mode, self.app_id))
+        logger.debug("%s:%s -> Started connecting to APNS connector..." % (self.app_mode, self.app_id))
         self.resetDelay()
 
     def buildProtocol(self, addr):
-        logger.info("%s:%s -> Building APNS Protocol to APNS Server %s:%u..." %
+        logger.debug("%s:%s -> Building APNS Protocol to APNS Server %s:%u..." %
                                 (self.app_mode, self.app_id, addr.host, addr.port))
         if not (self.currProtocol and self.currProtocol.connected):
             self.currProtocol = APNSProtocol(self.app_id, self.app_mode,
@@ -216,7 +216,7 @@ class APNSFactory(ReconnectingClientFactory):
                                              self.connListenerArgs,
                                              self.connListenerKWArgs)
         else:
-            logger.info("%s:%s -> Protocol already exists, returning existing protocol..." %
+            logger.debug("%s:%s -> Protocol already exists, returning existing protocol..." %
                                                                 (self.app_mode, self.app_id))
         return self.currProtocol
 
@@ -240,8 +240,6 @@ class APNSProtocol(Protocol):
         self.connListener = connListener
         self.connListenerArgs = connListenerArgs
         self.connListenerKWArgs = connListenerKWArgs
-        #msg = "APNSProtocol initialized: %s" %app_id
-        #logger.info(msg)
 
     def closeConnection(self):
         """
@@ -258,7 +256,7 @@ class APNSProtocol(Protocol):
             self.sendMessage(deviceToken, payload, identifier, expiry)
 
     def connectionLost(self, reason):
-        logger.info("%s:%s -> Connection to APNS Lost: %s" % (self.app_mode, self.app_id, str(reason)))
+        logger.warning("%s:%s -> Connection to APNS Lost: %s" % (self.app_mode, self.app_id, str(reason)))
 
     def dataReceived(self, data):
         """
@@ -292,7 +290,7 @@ class FeedbackProtocol(Protocol):
         self.data += data
 
     def connectionLost(self, reason):
-        logger.debug('FeedbackProtocol protocol lost connection, reason: %s' %reason)
+        logger.warning('FeedbackProtocol protocol lost connection, reason: %s' %reason)
         buff = copy.deepcopy(self.data)
         items = utils.getFeedbackItems(buff)
         self.deferredResult.callback(items)

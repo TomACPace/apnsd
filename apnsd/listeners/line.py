@@ -82,11 +82,14 @@ class LineProtocol(LineReceiver):
         line = line.strip()
         if line.startswith("connect:"):
             line = line[8:]
-            self.curr_app_id, self.curr_app_mode = [l.strip() for l in line.split(":")]
-            logger.debug("Current App changed to '%s:%s'" % (self.curr_app_mode, self.curr_app_id))
+            curr_app_id, curr_app_mode = [l.strip() for l in line.split(":")]
+            if (curr_app_id != self.curr_app_id) or (curr_app_mode != self.curr_app_mode):
+                self.curr_app_id = curr_app_id
+                self.curr_app_mode = curr_app_mode
+                logger.debug("Current App changed to '%s:%s'" % (self.curr_app_mode, self.curr_app_id))
         elif line.startswith("feedback:"):
             if not self.curr_app_id:
-                logger.warning("App ID has not yet been set.  Expecting 'connect' command first")
+                logger.warning("App ID has not yet been set. Expecting 'connect' command first")
             else:
                 deferred = defer.Deferred()
                 deferred.addCallbacks(self._feedbackReceivedCallback, self._feedbackErrorCallback)
@@ -95,7 +98,7 @@ class LineProtocol(LineReceiver):
         elif line.startswith("line:"):
             line = line[5:].strip()
             if not self.curr_app_id:
-                logger.warning("App ID has not yet been set.  Expecting 'connect' command first")
+                logger.warning("App ID has not yet been set. Expecting 'connect' command first")
             else:
                 coma1 = line.find(",")
                 coma2 = line.find(",", coma1 + 1)

@@ -112,6 +112,7 @@ class APNSDaemon(threading.Thread):
         """
         Sends a message/payload from a given app to a target device.
         """
+        logger.info('sendMessage: %s %s %s' %(app_name, app_mode, payload))
         real_app_name = APNSDaemon._getRealAppName(app_mode, app_name)
         if real_app_name not in self.conn_factories:
             raise errors.AppRegistrationError(app_name, "Application not registered for APNS", self.conn_factories.keys())
